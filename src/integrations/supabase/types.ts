@@ -14,7 +14,282 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clientes: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      fotos: {
+        Row: {
+          aprovada: boolean
+          created_at: string
+          galeria_id: string
+          id: string
+          url: string
+          url_com_marca_dagua: string | null
+        }
+        Insert: {
+          aprovada?: boolean
+          created_at?: string
+          galeria_id: string
+          id?: string
+          url: string
+          url_com_marca_dagua?: string | null
+        }
+        Update: {
+          aprovada?: boolean
+          created_at?: string
+          galeria_id?: string
+          id?: string
+          url?: string
+          url_com_marca_dagua?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fotos_galeria_id_fkey"
+            columns: ["galeria_id"]
+            isOneToOne: false
+            referencedRelation: "galerias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      galerias: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          id: string
+          link_publico: string | null
+          pacote: string | null
+          preco_avulso: number | null
+          status: string
+          tipo_ensaio: string | null
+          titulo: string
+          updated_at: string
+          user_id: string
+          valor_total: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          id?: string
+          link_publico?: string | null
+          pacote?: string | null
+          preco_avulso?: number | null
+          status?: string
+          tipo_ensaio?: string | null
+          titulo: string
+          updated_at?: string
+          user_id: string
+          valor_total?: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          link_publico?: string | null
+          pacote?: string | null
+          preco_avulso?: number | null
+          status?: string
+          tipo_ensaio?: string | null
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "galerias_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagamentos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          id: string
+          pedido_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          valor_pago: number
+          valor_total: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          id?: string
+          pedido_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          valor_pago?: number
+          valor_total?: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          pedido_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          valor_pago?: number
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          data_entrega: string | null
+          express: boolean
+          id: string
+          link_comprovante: string | null
+          pacote: string | null
+          servico: string
+          status: string
+          tempo_estimado_minutos: number
+          tipo_ensaio: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          data_entrega?: string | null
+          express?: boolean
+          id?: string
+          link_comprovante?: string | null
+          pacote?: string | null
+          servico: string
+          status?: string
+          tempo_estimado_minutos?: number
+          tipo_ensaio?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          data_entrega?: string | null
+          express?: boolean
+          id?: string
+          link_comprovante?: string | null
+          pacote?: string | null
+          servico?: string
+          status?: string
+          tempo_estimado_minutos?: number
+          tipo_ensaio?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          chave_pix: string | null
+          cidade: string | null
+          created_at: string
+          email: string | null
+          id: string
+          marca_dagua_opacidade: number
+          marca_dagua_posicao: string
+          marca_dagua_tamanho: number
+          marca_dagua_url: string | null
+          nome: string
+          nome_recebedor: string | null
+          plano: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chave_pix?: string | null
+          cidade?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          marca_dagua_opacidade?: number
+          marca_dagua_posicao?: string
+          marca_dagua_tamanho?: number
+          marca_dagua_url?: string | null
+          nome?: string
+          nome_recebedor?: string | null
+          plano?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chave_pix?: string | null
+          cidade?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          marca_dagua_opacidade?: number
+          marca_dagua_posicao?: string
+          marca_dagua_tamanho?: number
+          marca_dagua_url?: string | null
+          nome?: string
+          nome_recebedor?: string | null
+          plano?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

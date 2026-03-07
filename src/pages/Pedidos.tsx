@@ -16,19 +16,6 @@ import { toast } from "sonner";
 import { format, differenceInMinutes, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const TIPOS_ENSAIO = [
-  { value: "aniversario", label: "Aniversário" },
-  { value: "infantil", label: "Infantil" },
-  { value: "formatura", label: "Formatura" },
-  { value: "casal", label: "Casal" },
-  { value: "corporativo", label: "Corporativo" },
-];
-
-const PACOTES = [
-  { value: "mini", label: "Mini" },
-  { value: "essencial", label: "Essencial" },
-  { value: "premium", label: "Premium" },
-];
 
 export default function Pedidos() {
   const { user } = useAuth();
@@ -38,8 +25,7 @@ export default function Pedidos() {
   const [modalOpen, setModalOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [form, setForm] = useState({
-    cliente_id: "", servico: "", tipo_ensaio: "", pacote: "",
-    data_entrega: "", tempo_estimado: "120", express: false,
+    cliente_id: "", servico: "", data_entrega: "", tempo_estimado: "120",
   });
 
   useEffect(() => {
@@ -73,11 +59,8 @@ export default function Pedidos() {
       user_id: user.id,
       cliente_id: form.cliente_id,
       servico: form.servico,
-      tipo_ensaio: form.tipo_ensaio || null,
-      pacote: form.pacote || null,
       data_entrega: form.data_entrega ? new Date(form.data_entrega).toISOString() : null,
       tempo_estimado_minutos: parseInt(form.tempo_estimado) || 120,
-      express: form.express,
       link_comprovante: linkComprovante,
     });
 
@@ -139,7 +122,7 @@ export default function Pedidos() {
           <h1 className="text-2xl font-display font-bold">Pedidos</h1>
           <p className="text-sm text-muted-foreground">Gerencie seus pedidos e acompanhe o progresso</p>
         </div>
-        <Button onClick={() => { setForm({ cliente_id: "", servico: "", tipo_ensaio: "", pacote: "", data_entrega: "", tempo_estimado: "120", express: false }); setModalOpen(true); }}>
+        <Button onClick={() => { setForm({ cliente_id: "", servico: "", data_entrega: "", tempo_estimado: "120" }); setModalOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Novo Pedido
         </Button>
       </div>
@@ -277,22 +260,6 @@ export default function Pedidos() {
               <Label>Serviço</Label>
               <Input value={form.servico} onChange={(e) => setForm({ ...form, servico: e.target.value })} placeholder="Ex: Ensaio Aniversário, Ensaio Infantil..." className="bg-input border-border" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Tipo de ensaio</Label>
-                <Select value={form.tipo_ensaio} onValueChange={(v) => setForm({ ...form, tipo_ensaio: v })}>
-                  <SelectTrigger className="bg-input border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>{TIPOS_ENSAIO.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Pacote</Label>
-                <Select value={form.pacote} onValueChange={(v) => setForm({ ...form, pacote: v })}>
-                  <SelectTrigger className="bg-input border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>{PACOTES.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </div>
             <div className="space-y-2">
               <Label>Data e hora de entrega</Label>
               <Input type="datetime-local" value={form.data_entrega} onChange={(e) => setForm({ ...form, data_entrega: e.target.value })} className="bg-input border-border" />
@@ -300,10 +267,6 @@ export default function Pedidos() {
             <div className="space-y-2">
               <Label>Tempo estimado (minutos)</Label>
               <Input type="number" value={form.tempo_estimado} onChange={(e) => setForm({ ...form, tempo_estimado: e.target.value })} className="bg-input border-border" />
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox checked={form.express} onCheckedChange={(v) => setForm({ ...form, express: !!v })} />
-              <Label>⚡ Express 24h (+R$ 15,00)</Label>
             </div>
             <p className="text-xs text-muted-foreground">◆ Ao criar: comprovante gerado automaticamente com link para o cliente acompanhar</p>
           </div>

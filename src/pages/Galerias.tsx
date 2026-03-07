@@ -9,35 +9,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { StatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Search, Eye, Upload, Trash2, Copy } from "lucide-react";
+import { Plus, Search, Eye, Upload, Trash2, Copy, X } from "lucide-react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
-const TIPOS_ENSAIO = [
-  { value: "aniversario", label: "Aniversário 🎉" },
-  { value: "infantil", label: "Infantil 🧒" },
-  { value: "formatura", label: "Formatura 🎓" },
-  { value: "casal", label: "Casal 💑" },
-  { value: "corporativo", label: "Corporativo 💼" },
-];
-
-const PACOTES = [
-  { value: "mini", label: "Mini (3 fotos - R$ 29,90)", preco: 29.9 },
-  { value: "essencial", label: "Essencial (7 fotos - R$ 49,90)", preco: 49.9 },
-  { value: "premium", label: "Premium (10 fotos - R$ 69,90)", preco: 69.9 },
-];
 
 export default function Galerias() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [galerias, setGalerias] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
+  const [clienteFilter, setClienteFilter] = useState(searchParams.get("cliente") || "");
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({
-    titulo: "", cliente_id: "", tipo_ensaio: "", pacote: "",
-    valor_total: "", preco_avulso: "",
+    titulo: "", cliente_id: "", valor_total: "", preco_avulso: "",
   });
 
   useEffect(() => {
@@ -63,8 +51,16 @@ export default function Galerias() {
   const filtered = galerias.filter((g) => {
     const matchSearch = g.titulo.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "todos" || g.status === statusFilter;
-    return matchSearch && matchStatus;
+    const matchCliente = !clienteFilter || g.cliente_id === clienteFilter;
+    return matchSearch && matchStatus && matchCliente;
   });
+
+  const clienteFilterName = clienteFilter ? clientes.find(c => c.id === clienteFilter)?.nome : "";
+
+  const clearClienteFilter = () => {
+    setClienteFilter("");
+    setSearchParams({});
+  };
 
   const handleCreate = async () => {
     if (!user || !form.titulo.trim() || !form.cliente_id) {
@@ -77,8 +73,6 @@ export default function Galerias() {
       user_id: user.id,
       cliente_id: form.cliente_id,
       titulo: form.titulo,
-      tipo_ensaio: form.tipo_ensaio || null,
-      pacote: form.pacote || null,
       valor_total: parseFloat(form.valor_total) || 0,
       preco_avulso: form.preco_avulso ? parseFloat(form.preco_avulso) : null,
       link_publico: linkPublico,
@@ -103,23 +97,18 @@ export default function Galerias() {
     toast.success("Link copiado!");
   };
 
-  const handlePacoteChange = (pacote: string) => {
-    const p = PACOTES.find((x) => x.value === pacote);
-    setForm({ ...form, pacote, valor_total: p ? p.preco.toFixed(2) : form.valor_total });
-  };
-
   const formatCurrency = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-display font-bold">Galerias</h1>
-        <Button onClick={() => { setForm({ titulo: "", cliente_id: "", tipo_ensaio: "", pacote: "", valor_total: "", preco_avulso: "" }); setModalOpen(true); }}>
+        <Button onClick={() => { setForm({ titulo: "", cliente_id: "", valor_total: "", preco_avulso: "" }); setModalOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Nova Galeria
         </Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar por título..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 bg-input border-border" />
@@ -135,6 +124,12 @@ export default function Galerias() {
             <SelectItem value="finalizada">Finalizada</SelectItem>
           </SelectContent>
         </Select>
+        {clienteFilter && (
+          <div className="flex items-center gap-1 bg-primary/20 text-primary text-sm px-3 py-1.5 rounded-full">
+            <span>Cliente: {clienteFilterName || "..."}</span>
+            <button onClick={clearClienteFilter} className="ml-1 hover:text-primary-foreground"><X className="h-3 w-3" /></button>
+          </div>
+        )}
       </div>
 
       <Card className="border-border bg-card">
@@ -210,24 +205,6 @@ export default function Galerias() {
                 <SelectTrigger className="bg-input border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   {clientes.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Tipo de ensaio</Label>
-              <Select value={form.tipo_ensaio} onValueChange={(v) => setForm({ ...form, tipo_ensaio: v })}>
-                <SelectTrigger className="bg-input border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {TIPOS_ENSAIO.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Pacote</Label>
-              <Select value={form.pacote} onValueChange={handlePacoteChange}>
-                <SelectTrigger className="bg-input border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {PACOTES.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

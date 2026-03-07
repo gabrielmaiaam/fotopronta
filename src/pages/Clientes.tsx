@@ -10,9 +10,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Plus, Search, Image, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 export default function Clientes() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [clientes, setClientes] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -131,7 +133,7 @@ export default function Clientes() {
                       <TableCell>{format(new Date(c.created_at), "dd/MM/yyyy")}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" title="Galerias">
+                          <Button variant="ghost" size="icon" title="Galerias" onClick={() => navigate(`/galerias?cliente=${c.id}`)}>
                             <Image className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>

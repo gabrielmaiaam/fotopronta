@@ -249,6 +249,10 @@ export type Database = {
           marca_dagua_opacidade: number
           marca_dagua_posicao: string
           marca_dagua_tamanho: number
+          marca_dagua_texto: string | null
+          marca_dagua_texto_cor: string
+          marca_dagua_texto_tamanho: number
+          marca_dagua_tipo: string
           marca_dagua_url: string | null
           nome: string
           nome_recebedor: string | null
@@ -265,6 +269,10 @@ export type Database = {
           marca_dagua_opacidade?: number
           marca_dagua_posicao?: string
           marca_dagua_tamanho?: number
+          marca_dagua_texto?: string | null
+          marca_dagua_texto_cor?: string
+          marca_dagua_texto_tamanho?: number
+          marca_dagua_tipo?: string
           marca_dagua_url?: string | null
           nome?: string
           nome_recebedor?: string | null
@@ -281,6 +289,10 @@ export type Database = {
           marca_dagua_opacidade?: number
           marca_dagua_posicao?: string
           marca_dagua_tamanho?: number
+          marca_dagua_texto?: string | null
+          marca_dagua_texto_cor?: string
+          marca_dagua_texto_tamanho?: number
+          marca_dagua_tipo?: string
           marca_dagua_url?: string | null
           nome?: string
           nome_recebedor?: string | null

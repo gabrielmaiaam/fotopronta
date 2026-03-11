@@ -36,6 +36,12 @@ export default function GaleriaDetail() {
   const [posicao, setPosicao] = useState("repetir");
   const [chavePix, setChavePix] = useState("");
 
+  // Text watermark
+  const [marcaTipo, setMarcaTipo] = useState("imagem");
+  const [marcaTexto, setMarcaTexto] = useState("");
+  const [marcaTextoCor, setMarcaTextoCor] = useState("#FFFFFF");
+  const [marcaTextoTamanho, setMarcaTextoTamanho] = useState(24);
+
   // Footer price
   const [precoAvulso, setPrecoAvulso] = useState("");
 
@@ -59,6 +65,10 @@ export default function GaleriaDetail() {
       setTamanho(p.marca_dagua_tamanho);
       setPosicao(p.marca_dagua_posicao);
       setChavePix(p.chave_pix || "");
+      setMarcaTipo((p as any).marca_dagua_tipo || "imagem");
+      setMarcaTexto((p as any).marca_dagua_texto || "");
+      setMarcaTextoCor((p as any).marca_dagua_texto_cor || "#FFFFFF");
+      setMarcaTextoTamanho((p as any).marca_dagua_texto_tamanho || 24);
     }
   };
 
@@ -133,7 +143,11 @@ export default function GaleriaDetail() {
       marca_dagua_opacidade: opacidade,
       marca_dagua_tamanho: tamanho,
       marca_dagua_posicao: posicao,
-    }).eq("user_id", user.id);
+      marca_dagua_tipo: marcaTipo,
+      marca_dagua_texto: marcaTexto,
+      marca_dagua_texto_cor: marcaTextoCor,
+      marca_dagua_texto_tamanho: marcaTextoTamanho,
+    } as any).eq("user_id", user.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Marca d'água salva!");
   };
@@ -144,6 +158,60 @@ export default function GaleriaDetail() {
     if (error) { toast.error(error.message); return; }
     toast.success("Preço avulso salvo!");
   };
+
+  // Watermark preview helpers
+  const getPositionStyle = (pos: string) => ({
+    ...(pos === "sup_esq" && { alignItems: "flex-start" as const, justifyContent: "flex-start" as const, padding: "8%" }),
+    ...(pos === "sup_dir" && { alignItems: "flex-start" as const, justifyContent: "flex-end" as const, padding: "8%" }),
+    ...(pos === "centro" && {}),
+    ...(pos === "inf_esq" && { alignItems: "flex-end" as const, justifyContent: "flex-start" as const, padding: "8%" }),
+    ...(pos === "inf_dir" && { alignItems: "flex-end" as const, justifyContent: "flex-end" as const, padding: "8%" }),
+  });
+
+  const renderWatermarkPreview = () => {
+    if (marcaTipo === "texto" && marcaTexto) {
+      if (posicao === "repetir") {
+        return (
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute inset-0" style={{
+              display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center",
+              gap: `${marcaTextoTamanho}px`, opacity: opacidade / 100,
+              transform: "rotate(-30deg) scale(1.5)",
+            }}>
+              {Array.from({ length: 20 }).map((_, i) => (
+                <span key={i} style={{ color: marcaTextoCor, fontSize: `${marcaTextoTamanho * 0.6}px`, fontWeight: "bold", whiteSpace: "nowrap" }}>
+                  {marcaTexto}
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+      }
+      return (
+        <span style={{
+          color: marcaTextoCor, fontSize: `${marcaTextoTamanho * 0.6}px`,
+          fontWeight: "bold", opacity: opacidade / 100, whiteSpace: "nowrap",
+        }}>
+          {marcaTexto}
+        </span>
+      );
+    }
+    if (marcaTipo === "imagem" && marcaUrl) {
+      if (posicao === "repetir") {
+        return (
+          <div className="absolute inset-0" style={{
+            backgroundImage: `url(${marcaUrl})`, backgroundSize: `${tamanho}%`,
+            backgroundRepeat: "repeat", opacity: opacidade / 100,
+            transform: "rotate(-30deg) scale(1.5)",
+          }} />
+        );
+      }
+      return <img src={marcaUrl} alt="Marca d'água" style={{ width: `${tamanho}%`, opacity: opacidade / 100 }} />;
+    }
+    return null;
+  };
+
+  const hasWatermark = (marcaTipo === "texto" && marcaTexto) || (marcaTipo === "imagem" && marcaUrl);
 
   if (!galeria) return <div className="text-muted-foreground p-8">Carregando...</div>;
 
@@ -193,27 +261,42 @@ export default function GaleriaDetail() {
             </p>
           </CardHeader>
           <CardContent className="px-4 pb-4 space-y-3">
-            {/* Upload */}
-            {marcaUrl ? (
-              <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
-                <img src={marcaUrl} alt="Marca d'água" className="w-8 h-8 object-contain" />
-                <span className="text-xs flex-1 truncate">marca-dagua</span>
-                <label className="cursor-pointer">
-                  <Button variant="outline" size="sm" asChild className="h-7 text-xs"><span>Trocar</span></Button>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleWatermarkUpload} />
-                </label>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMarcaUrl("")}>
-                  <Trash2 className="h-3 w-3 text-destructive" />
-                </Button>
-              </div>
+            {/* Mode indicator */}
+            <p className="text-xs text-muted-foreground">
+              Modo: <span className="text-foreground font-medium">{marcaTipo === "imagem" ? "Imagem" : "Texto"}</span>
+              <span className="ml-1">(altere em Configurações)</span>
+            </p>
+
+            {marcaTipo === "imagem" ? (
+              <>
+                {/* Upload */}
+                {marcaUrl ? (
+                  <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
+                    <img src={marcaUrl} alt="Marca d'água" className="w-8 h-8 object-contain" />
+                    <span className="text-xs flex-1 truncate">marca-dagua</span>
+                    <label className="cursor-pointer">
+                      <Button variant="outline" size="sm" asChild className="h-7 text-xs"><span>Trocar</span></Button>
+                      <input type="file" accept="image/*" className="hidden" onChange={handleWatermarkUpload} />
+                    </label>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMarcaUrl("")}>
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="cursor-pointer block">
+                    <div className="border border-dashed border-border rounded-lg p-4 text-center hover:border-primary transition-colors">
+                      <Upload className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
+                      <p className="text-xs text-muted-foreground">Upload da logo</p>
+                    </div>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleWatermarkUpload} />
+                  </label>
+                )}
+              </>
             ) : (
-              <label className="cursor-pointer block">
-                <div className="border border-dashed border-border rounded-lg p-4 text-center hover:border-primary transition-colors">
-                  <Upload className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
-                  <p className="text-xs text-muted-foreground">Upload da logo</p>
-                </div>
-                <input type="file" accept="image/*" className="hidden" onChange={handleWatermarkUpload} />
-              </label>
+              <div className="p-2 bg-muted rounded-lg">
+                <p className="text-xs text-muted-foreground mb-1">Texto:</p>
+                <p className="text-sm font-medium" style={{ color: marcaTextoCor }}>{marcaTexto || "—"}</p>
+              </div>
             )}
 
             {/* Opacity */}
@@ -222,11 +305,13 @@ export default function GaleriaDetail() {
               <Slider value={[opacidade]} onValueChange={([v]) => setOpacidade(v)} min={0} max={100} step={1} />
             </div>
 
-            {/* Size */}
-            <div className="space-y-1">
-              <Label className="text-xs">Tamanho: {tamanho}%</Label>
-              <Slider value={[tamanho]} onValueChange={([v]) => setTamanho(v)} min={5} max={50} step={1} />
-            </div>
+            {/* Size (only for image mode) */}
+            {marcaTipo === "imagem" && (
+              <div className="space-y-1">
+                <Label className="text-xs">Tamanho: {tamanho}%</Label>
+                <Slider value={[tamanho]} onValueChange={([v]) => setTamanho(v)} min={5} max={50} step={1} />
+              </div>
+            )}
 
             {/* Position */}
             <div className="space-y-1">
@@ -251,28 +336,12 @@ export default function GaleriaDetail() {
             {/* Preview */}
             <div className="relative w-full aspect-[4/3] bg-muted rounded-lg overflow-hidden flex items-center justify-center">
               <div className="text-4xl">📸</div>
-              {marcaUrl && (
+              {hasWatermark && (
                 <div
                   className="absolute inset-0 flex items-center justify-center"
-                  style={{
-                    ...(posicao === "sup_esq" && { alignItems: "flex-start", justifyContent: "flex-start", padding: "8%" }),
-                    ...(posicao === "sup_dir" && { alignItems: "flex-start", justifyContent: "flex-end", padding: "8%" }),
-                    ...(posicao === "centro" && {}),
-                    ...(posicao === "inf_esq" && { alignItems: "flex-end", justifyContent: "flex-start", padding: "8%" }),
-                    ...(posicao === "inf_dir" && { alignItems: "flex-end", justifyContent: "flex-end", padding: "8%" }),
-                  }}
+                  style={getPositionStyle(posicao)}
                 >
-                  {posicao === "repetir" ? (
-                    <div className="absolute inset-0" style={{
-                      backgroundImage: `url(${marcaUrl})`,
-                      backgroundSize: `${tamanho}%`,
-                      backgroundRepeat: "repeat",
-                      opacity: opacidade / 100,
-                      transform: "rotate(-30deg) scale(1.5)",
-                    }} />
-                  ) : (
-                    <img src={marcaUrl} alt="Marca d'água" style={{ width: `${tamanho}%`, opacity: opacidade / 100 }} />
-                  )}
+                  {renderWatermarkPreview()}
                 </div>
               )}
             </div>

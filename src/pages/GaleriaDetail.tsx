@@ -8,7 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { StatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, Upload, Trash2, Unlock, Link2, QrCode, Info } from "lucide-react";
+import { ArrowLeft, Upload, Trash2, Unlock, Link2, QrCode, Info, Check } from "lucide-react";
 import { toast } from "sonner";
 
 const POSITIONS = [

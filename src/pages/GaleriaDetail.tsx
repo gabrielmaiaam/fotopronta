@@ -382,11 +382,28 @@ export default function GaleriaDetail() {
             </p>
 
             {/* Photos grid */}
+            {fotos.some((f) => f.aprovada) && (
+              <div className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 rounded-md px-2 py-1 w-fit">
+                <Check className="h-3 w-3" />
+                {fotos.filter((f) => f.aprovada).length} foto(s) selecionada(s) pelo cliente
+              </div>
+            )}
+
             {fotos.length > 0 ? (
               <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
                 {fotos.map((foto) => (
-                  <div key={foto.id} className="relative group rounded-md overflow-hidden border border-border bg-muted">
+                  <div
+                    key={foto.id}
+                    className={`relative group rounded-md overflow-hidden bg-muted border-2 transition-all ${
+                      foto.aprovada ? "border-primary ring-1 ring-primary/30" : "border-border"
+                    }`}
+                  >
                     <img src={foto.url} alt="" className="w-full aspect-square object-cover" />
+                    {foto.aprovada && (
+                      <div className="absolute top-1 left-1 bg-primary text-primary-foreground rounded-full p-0.5">
+                        <Check className="h-3 w-3" />
+                      </div>
+                    )}
                     <button
                       onClick={() => handleDeleteFoto(foto.id)}
                       className="absolute top-1 right-1 bg-destructive/80 text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"

@@ -55,12 +55,15 @@ export default function Pedidos() {
     }
 
     const linkComprovante = crypto.randomUUID().slice(0, 8);
+    const tempoEstimado = form.data_entrega
+      ? Math.max(differenceInMinutes(new Date(form.data_entrega), new Date()), 1)
+      : 120;
     const { error } = await supabase.from("pedidos").insert({
       user_id: user.id,
       cliente_id: form.cliente_id,
       servico: form.servico,
       data_entrega: form.data_entrega ? new Date(form.data_entrega).toISOString() : null,
-      tempo_estimado_minutos: parseInt(form.tempo_estimado) || 120,
+      tempo_estimado_minutos: tempoEstimado,
       link_comprovante: linkComprovante,
     });
 

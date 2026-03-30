@@ -125,7 +125,7 @@ export default function Pedidos() {
           <h1 className="text-2xl font-display font-bold">Pedidos</h1>
           <p className="text-sm text-muted-foreground">Gerencie seus pedidos e acompanhe o progresso</p>
         </div>
-        <Button onClick={() => { setForm({ cliente_id: "", servico: "", data_entrega: "", tempo_estimado: "120" }); setModalOpen(true); }}>
+        <Button onClick={() => { setForm({ cliente_id: "", servico: "", data_entrega: "" }); setModalOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Novo Pedido
         </Button>
       </div>

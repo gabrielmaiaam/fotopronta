@@ -1,15 +1,23 @@
 
 
-## Ajuste no Modal "Criar Pedido"
+## Sistema de Etiquetas Coloridas para Clientes
 
-**Arquivo:** `src/pages/Pedidos.tsx`
+### Database (2 novas tabelas)
 
-### Alterações:
-1. **Remover campo "Tempo estimado (minutos)"** do formulário — remover o `<div>` com Label e Input de `tempo_estimado`
-2. **Remover `tempo_estimado` do state `form`** — manter apenas `cliente_id`, `servico`, `data_entrega`
-3. **Calcular `tempo_estimado_minutos` automaticamente no `handleCreate`** — usar `differenceInMinutes(new Date(form.data_entrega), new Date())` quando `data_entrega` estiver preenchido, senão usar 120 como fallback
-4. **Atualizar o texto de aviso** para corresponder à imagem: "O tempo estimado será calculado automaticamente ao iniciar o pedido (da hora atual até a data de entrega)."
-5. **Manter o aviso do comprovante** já existente
+**Tabela `etiquetas`:** `id` (uuid PK), `user_id` (uuid, not null), `nome` (text), `cor` (text), `created_at`. RLS: users manage own.
 
-Layout final do modal conforme a imagem: Cliente → Serviço → Data e hora de entrega → Aviso de cálculo automático → Aviso do comprovante → Botão "Criar Pedido"
+**Tabela `cliente_etiquetas`:** `id` (uuid PK), `cliente_id` (uuid, not null), `etiqueta_id` (uuid, not null), unique(cliente_id, etiqueta_id). RLS: users manage own (via join to etiquetas.user_id).
+
+### UI Changes — `src/pages/Clientes.tsx`
+
+1. **Header:** Add "Etiquetas" button (with Tag icon) next to "Novo Cliente"
+2. **Painel "Gerenciar Etiquetas"** (collapsible Card below header, toggled by button):
+   - Input "Nova etiqueta..." + 10+ color circles (selectable) + "+ Criar" button
+   - List of existing tags with delete (X) button each
+3. **Table:** Add "Etiquetas" column between Nome and WhatsApp, rendering colored Badge components
+4. **Edit modal:** Add multi-select section for etiquetas (clickable badges to toggle on/off)
+5. **Data loading:** Query `etiquetas` and `cliente_etiquetas` alongside clientes; on save, sync junction table
+
+### Colors palette
+`#5B7FFF`, `#8B5CF6`, `#F97316`, `#22C55E`, `#EF4444`, `#EC4899`, `#06B6D4`, `#EAB308`, `#84CC16`, `#9CA3AF`
 

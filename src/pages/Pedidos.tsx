@@ -267,10 +267,7 @@ export default function Pedidos() {
               <Label>Data e hora de entrega</Label>
               <Input type="datetime-local" value={form.data_entrega} onChange={(e) => setForm({ ...form, data_entrega: e.target.value })} className="bg-input border-border" />
             </div>
-            <div className="space-y-2">
-              <Label>Tempo estimado (minutos)</Label>
-              <Input type="number" value={form.tempo_estimado} onChange={(e) => setForm({ ...form, tempo_estimado: e.target.value })} className="bg-input border-border" />
-            </div>
+            <p className="text-xs text-muted-foreground">⏱ O tempo estimado será calculado automaticamente ao iniciar o pedido (da hora atual até a data de entrega).</p>
             <p className="text-xs text-muted-foreground">◆ Ao criar: comprovante gerado automaticamente com link para o cliente acompanhar</p>
           </div>
           <DialogFooter>

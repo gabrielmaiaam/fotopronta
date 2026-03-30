@@ -1,16 +1,24 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Search, Image, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Image, Pencil, Trash2, Tag, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+
+const CORES = [
+  "#5B7FFF", "#8B5CF6", "#F97316", "#22C55E", "#EF4444",
+  "#EC4899", "#06B6D4", "#EAB308", "#84CC16", "#9CA3AF",
+];
+
+type Etiqueta = { id: string; nome: string; cor: string };
 
 export default function Clientes() {
   const { user } = useAuth();
@@ -21,8 +29,19 @@ export default function Clientes() {
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ nome: "", whatsapp: "", email: "" });
 
+  // Etiquetas state
+  const [painelAberto, setPainelAberto] = useState(false);
+  const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
+  const [novaEtiqueta, setNovaEtiqueta] = useState("");
+  const [corSelecionada, setCorSelecionada] = useState(CORES[0]);
+  const [clienteEtiquetas, setClienteEtiquetas] = useState<Record<string, string[]>>({});
+  const [editEtiquetasSelecionadas, setEditEtiquetasSelecionadas] = useState<string[]>([]);
+
   useEffect(() => {
-    if (user) loadClientes();
+    if (user) {
+      loadClientes();
+      loadEtiquetas();
+    }
   }, [user]);
 
   const loadClientes = async () => {
@@ -33,6 +52,48 @@ export default function Clientes() {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     setClientes(data || []);
+    // Load junction
+    const { data: ce } = await supabase
+      .from("cliente_etiquetas")
+      .select("cliente_id, etiqueta_id")
+      .in("cliente_id", (data || []).map((c: any) => c.id));
+    const map: Record<string, string[]> = {};
+    (ce || []).forEach((row: any) => {
+      if (!map[row.cliente_id]) map[row.cliente_id] = [];
+      map[row.cliente_id].push(row.etiqueta_id);
+    });
+    setClienteEtiquetas(map);
+  };
+
+  const loadEtiquetas = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("etiquetas")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true });
+    setEtiquetas(data || []);
+  };
+
+  const criarEtiqueta = async () => {
+    if (!user || !novaEtiqueta.trim()) return;
+    const { error } = await supabase.from("etiquetas").insert({
+      user_id: user.id,
+      nome: novaEtiqueta.trim(),
+      cor: corSelecionada,
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Etiqueta criada!");
+    setNovaEtiqueta("");
+    loadEtiquetas();
+  };
+
+  const excluirEtiqueta = async (id: string) => {
+    const { error } = await supabase.from("etiquetas").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Etiqueta excluída!");
+    loadEtiquetas();
+    loadClientes();
   };
 
   const filtered = clientes.filter((c) =>
@@ -42,12 +103,14 @@ export default function Clientes() {
   const openNew = () => {
     setEditing(null);
     setForm({ nome: "", whatsapp: "", email: "" });
+    setEditEtiquetasSelecionadas([]);
     setModalOpen(true);
   };
 
   const openEdit = (c: any) => {
     setEditing(c);
     setForm({ nome: c.nome, whatsapp: c.whatsapp || "", email: c.email || "" });
+    setEditEtiquetasSelecionadas(clienteEtiquetas[c.id] || []);
     setModalOpen(true);
   };
 
@@ -57,21 +120,33 @@ export default function Clientes() {
       return;
     }
 
+    let clienteId = editing?.id;
+
     if (editing) {
       const { error } = await supabase
         .from("clientes")
         .update({ nome: form.nome, whatsapp: form.whatsapp || null, email: form.email || null })
         .eq("id", editing.id);
       if (error) { toast.error(error.message); return; }
-      toast.success("Cliente atualizado!");
     } else {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("clientes")
-        .insert({ user_id: user.id, nome: form.nome, whatsapp: form.whatsapp || null, email: form.email || null });
+        .insert({ user_id: user.id, nome: form.nome, whatsapp: form.whatsapp || null, email: form.email || null })
+        .select("id")
+        .single();
       if (error) { toast.error(error.message); return; }
-      toast.success("Cliente criado!");
+      clienteId = data.id;
     }
 
+    // Sync etiquetas
+    await supabase.from("cliente_etiquetas").delete().eq("cliente_id", clienteId);
+    if (editEtiquetasSelecionadas.length > 0) {
+      await supabase.from("cliente_etiquetas").insert(
+        editEtiquetasSelecionadas.map((eid) => ({ cliente_id: clienteId, etiqueta_id: eid }))
+      );
+    }
+
+    toast.success(editing ? "Cliente atualizado!" : "Cliente criado!");
     setModalOpen(false);
     loadClientes();
   };
@@ -91,14 +166,79 @@ export default function Clientes() {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
   };
 
+  const toggleEtiqueta = (id: string) => {
+    setEditEtiquetasSelecionadas((prev) =>
+      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]
+    );
+  };
+
+  const getEtiquetaById = (id: string) => etiquetas.find((e) => e.id === id);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-display font-bold">Clientes</h1>
-        <Button onClick={openNew}>
-          <Plus className="h-4 w-4 mr-1" /> Novo Cliente
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setPainelAberto(!painelAberto)}>
+            <Tag className="h-4 w-4 mr-1" /> Etiquetas
+          </Button>
+          <Button onClick={openNew}>
+            <Plus className="h-4 w-4 mr-1" /> Novo Cliente
+          </Button>
+        </div>
       </div>
+
+      {/* Painel de gerenciamento de etiquetas */}
+      {painelAberto && (
+        <Card className="border-border bg-card">
+          <CardContent className="p-4 space-y-4">
+            <h3 className="font-semibold text-sm">Gerenciar Etiquetas</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                placeholder="Nova etiqueta..."
+                value={novaEtiqueta}
+                onChange={(e) => setNovaEtiqueta(e.target.value)}
+                className="w-40 bg-input border-border"
+                onKeyDown={(e) => e.key === "Enter" && criarEtiqueta()}
+              />
+              <div className="flex gap-1">
+                {CORES.map((cor) => (
+                  <button
+                    key={cor}
+                    className={`w-6 h-6 rounded-full border-2 transition-transform ${
+                      corSelecionada === cor ? "border-foreground scale-110" : "border-transparent"
+                    }`}
+                    style={{ backgroundColor: cor }}
+                    onClick={() => setCorSelecionada(cor)}
+                  />
+                ))}
+              </div>
+              <Button size="sm" onClick={criarEtiqueta} disabled={!novaEtiqueta.trim()}>
+                <Plus className="h-3 w-3 mr-1" /> Criar
+              </Button>
+            </div>
+            {etiquetas.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {etiquetas.map((et) => (
+                  <Badge
+                    key={et.id}
+                    className="text-white flex items-center gap-1 pr-1"
+                    style={{ backgroundColor: et.cor }}
+                  >
+                    {et.nome}
+                    <button
+                      onClick={() => excluirEtiqueta(et.id)}
+                      className="ml-1 hover:bg-black/20 rounded-full p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -117,6 +257,7 @@ export default function Clientes() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
+                  <TableHead>Etiquetas</TableHead>
                   <TableHead>WhatsApp</TableHead>
                   <TableHead>Galerias</TableHead>
                   <TableHead>Cadastro</TableHead>
@@ -128,6 +269,23 @@ export default function Clientes() {
                   filtered.map((c) => (
                     <TableRow key={c.id}>
                       <TableCell className="font-medium">{c.nome}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {(clienteEtiquetas[c.id] || []).map((eid) => {
+                            const et = getEtiquetaById(eid);
+                            if (!et) return null;
+                            return (
+                              <Badge
+                                key={eid}
+                                className="text-white text-xs"
+                                style={{ backgroundColor: et.cor }}
+                              >
+                                {et.nome}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </TableCell>
                       <TableCell>{c.whatsapp || "—"}</TableCell>
                       <TableCell>{c.galerias?.length || 0}</TableCell>
                       <TableCell>{format(new Date(c.created_at), "dd/MM/yyyy")}</TableCell>
@@ -148,7 +306,7 @@ export default function Clientes() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       Nenhum cliente encontrado
                     </TableCell>
                   </TableRow>
@@ -195,6 +353,32 @@ export default function Clientes() {
                 className="bg-input border-border"
               />
             </div>
+            {etiquetas.length > 0 && (
+              <div className="space-y-2">
+                <Label>Etiquetas</Label>
+                <div className="flex flex-wrap gap-2">
+                  {etiquetas.map((et) => {
+                    const selected = editEtiquetasSelecionadas.includes(et.id);
+                    return (
+                      <button
+                        key={et.id}
+                        onClick={() => toggleEtiqueta(et.id)}
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-semibold transition-all border-2 ${
+                          selected ? "text-white" : "opacity-40"
+                        }`}
+                        style={{
+                          backgroundColor: selected ? et.cor : "transparent",
+                          borderColor: et.cor,
+                          color: selected ? "white" : et.cor,
+                        }}
+                      >
+                        {et.nome}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button onClick={handleSave} className="w-full">Salvar</Button>

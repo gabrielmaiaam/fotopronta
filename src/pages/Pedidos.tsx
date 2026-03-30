@@ -25,7 +25,7 @@ export default function Pedidos() {
   const [modalOpen, setModalOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [form, setForm] = useState({
-    cliente_id: "", servico: "", data_entrega: "", tempo_estimado: "120",
+    cliente_id: "", servico: "", data_entrega: "",
   });
 
   useEffect(() => {

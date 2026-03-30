@@ -25,7 +25,7 @@ export default function Pedidos() {
   const [modalOpen, setModalOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [form, setForm] = useState({
-    cliente_id: "", servico: "", data_entrega: "", tempo_estimado: "120",
+    cliente_id: "", servico: "", data_entrega: "",
   });
 
   useEffect(() => {
@@ -55,12 +55,15 @@ export default function Pedidos() {
     }
 
     const linkComprovante = crypto.randomUUID().slice(0, 8);
+    const tempoEstimado = form.data_entrega
+      ? Math.max(differenceInMinutes(new Date(form.data_entrega), new Date()), 1)
+      : 120;
     const { error } = await supabase.from("pedidos").insert({
       user_id: user.id,
       cliente_id: form.cliente_id,
       servico: form.servico,
       data_entrega: form.data_entrega ? new Date(form.data_entrega).toISOString() : null,
-      tempo_estimado_minutos: parseInt(form.tempo_estimado) || 120,
+      tempo_estimado_minutos: tempoEstimado,
       link_comprovante: linkComprovante,
     });
 
@@ -122,7 +125,7 @@ export default function Pedidos() {
           <h1 className="text-2xl font-display font-bold">Pedidos</h1>
           <p className="text-sm text-muted-foreground">Gerencie seus pedidos e acompanhe o progresso</p>
         </div>
-        <Button onClick={() => { setForm({ cliente_id: "", servico: "", data_entrega: "", tempo_estimado: "120" }); setModalOpen(true); }}>
+        <Button onClick={() => { setForm({ cliente_id: "", servico: "", data_entrega: "" }); setModalOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Novo Pedido
         </Button>
       </div>
@@ -264,10 +267,7 @@ export default function Pedidos() {
               <Label>Data e hora de entrega</Label>
               <Input type="datetime-local" value={form.data_entrega} onChange={(e) => setForm({ ...form, data_entrega: e.target.value })} className="bg-input border-border" />
             </div>
-            <div className="space-y-2">
-              <Label>Tempo estimado (minutos)</Label>
-              <Input type="number" value={form.tempo_estimado} onChange={(e) => setForm({ ...form, tempo_estimado: e.target.value })} className="bg-input border-border" />
-            </div>
+            <p className="text-xs text-muted-foreground">⏱ O tempo estimado será calculado automaticamente ao iniciar o pedido (da hora atual até a data de entrega).</p>
             <p className="text-xs text-muted-foreground">◆ Ao criar: comprovante gerado automaticamente com link para o cliente acompanhar</p>
           </div>
           <DialogFooter>

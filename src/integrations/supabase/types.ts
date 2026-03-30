@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      cliente_etiquetas: {
+        Row: {
+          cliente_id: string
+          etiqueta_id: string
+          id: string
+        }
+        Insert: {
+          cliente_id: string
+          etiqueta_id: string
+          id?: string
+        }
+        Update: {
+          cliente_id?: string
+          etiqueta_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_etiquetas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_etiquetas_etiqueta_id_fkey"
+            columns: ["etiqueta_id"]
+            isOneToOne: false
+            referencedRelation: "etiquetas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           created_at: string
@@ -41,6 +74,30 @@ export type Database = {
           updated_at?: string
           user_id?: string
           whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      etiquetas: {
+        Row: {
+          cor: string
+          created_at: string
+          id: string
+          nome: string
+          user_id: string
+        }
+        Insert: {
+          cor?: string
+          created_at?: string
+          id?: string
+          nome: string
+          user_id: string
+        }
+        Update: {
+          cor?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          user_id?: string
         }
         Relationships: []
       }

@@ -303,6 +303,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          marca_dagua_camadas: Json
           marca_dagua_opacidade: number
           marca_dagua_posicao: string
           marca_dagua_tamanho: number
@@ -323,6 +324,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          marca_dagua_camadas?: Json
           marca_dagua_opacidade?: number
           marca_dagua_posicao?: string
           marca_dagua_tamanho?: number
@@ -343,6 +345,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          marca_dagua_camadas?: Json
           marca_dagua_opacidade?: number
           marca_dagua_posicao?: string
           marca_dagua_tamanho?: number

@@ -1,0 +1,1 @@
+ALTER TABLE profiles ADD COLUMN marca_dagua_camadas jsonb NOT NULL DEFAULT '[]'::jsonb;

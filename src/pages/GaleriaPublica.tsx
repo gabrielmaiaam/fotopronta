@@ -4,6 +4,104 @@ import { supabase } from "@/integrations/supabase/client";
 import { Camera, Check, CheckCircle2, Download, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import type { WatermarkLayer } from "@/components/WatermarkEditor";
+
+function migrateLegacyWatermark(profile: any): WatermarkLayer[] {
+  if (profile.marca_dagua_camadas && (profile.marca_dagua_camadas as any[]).length > 0) {
+    return profile.marca_dagua_camadas as WatermarkLayer[];
+  }
+  const layers: WatermarkLayer[] = [];
+  const tipo = profile.marca_dagua_tipo || "imagem";
+  if (tipo === "texto" && profile.marca_dagua_texto) {
+    layers.push({
+      tipo: "texto",
+      texto: profile.marca_dagua_texto,
+      cor: profile.marca_dagua_texto_cor || "#FFFFFF",
+      tamanho: profile.marca_dagua_texto_tamanho || 24,
+      opacidade: profile.marca_dagua_opacidade || 24,
+      posicao: profile.marca_dagua_posicao || "repetir",
+    });
+  } else if (tipo === "imagem" && profile.marca_dagua_url) {
+    layers.push({
+      tipo: "logo",
+      url: profile.marca_dagua_url,
+      tamanho: profile.marca_dagua_tamanho || 15,
+      opacidade: profile.marca_dagua_opacidade || 24,
+      posicao: profile.marca_dagua_posicao || "repetir",
+    });
+  }
+  return layers;
+}
+
+const getPositionStyle = (pos: string): React.CSSProperties => ({
+  ...(pos === "sup_esq" && { alignItems: "flex-start", justifyContent: "flex-start", padding: "8%" }),
+  ...(pos === "sup_dir" && { alignItems: "flex-start", justifyContent: "flex-end", padding: "8%" }),
+  ...(pos === "centro" && {}),
+  ...(pos === "inf_esq" && { alignItems: "flex-end", justifyContent: "flex-start", padding: "8%" }),
+  ...(pos === "inf_dir" && { alignItems: "flex-end", justifyContent: "flex-end", padding: "8%" }),
+});
+
+function WatermarkOverlay({ layer, index }: { layer: WatermarkLayer; index: number }) {
+  if (layer.tipo === "texto" && layer.texto) {
+    if (layer.posicao === "repetir") {
+      return (
+        <div key={index} className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0" style={{
+            display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center",
+            gap: `${(layer.tamanho || 24) * 1.2}px`,
+            opacity: (layer.opacidade ?? 50) / 100,
+            transform: "rotate(-30deg) scale(1.5)",
+          }}>
+            {Array.from({ length: 20 }).map((_, i) => (
+              <span key={i} style={{
+                color: layer.cor || "#FFFFFF",
+                fontSize: `${Math.max(10, (layer.tamanho || 24) * 0.5)}px`,
+                fontWeight: "bold",
+                whiteSpace: "nowrap",
+              }}>
+                {layer.texto}
+              </span>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div key={index} className="absolute inset-0 flex items-center justify-center pointer-events-none" style={getPositionStyle(layer.posicao)}>
+        <span style={{
+          color: layer.cor || "#FFFFFF",
+          fontSize: `${Math.max(10, (layer.tamanho || 24) * 0.5)}px`,
+          fontWeight: "bold",
+          opacity: (layer.opacidade ?? 50) / 100,
+          whiteSpace: "nowrap",
+        }}>
+          {layer.texto}
+        </span>
+      </div>
+    );
+  }
+
+  if (layer.tipo === "logo" && layer.url) {
+    if (layer.posicao === "repetir") {
+      return (
+        <div key={index} className="absolute inset-0 pointer-events-none" style={{
+          backgroundImage: `url(${layer.url})`,
+          backgroundSize: `${layer.tamanho || 15}%`,
+          backgroundRepeat: "repeat",
+          opacity: (layer.opacidade ?? 30) / 100,
+          transform: "rotate(-30deg) scale(1.5)",
+        }} />
+      );
+    }
+    return (
+      <div key={index} className="absolute inset-0 flex items-center justify-center pointer-events-none" style={getPositionStyle(layer.posicao)}>
+        <img src={layer.url} alt="" style={{ width: `${layer.tamanho || 15}%`, opacity: (layer.opacidade ?? 30) / 100 }} />
+      </div>
+    );
+  }
+
+  return null;
+}
 
 export default function GaleriaPublica() {
   const { link } = useParams();
@@ -12,6 +110,7 @@ export default function GaleriaPublica() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+  const [camadas, setCamadas] = useState<WatermarkLayer[]>([]);
 
   useEffect(() => {
     if (link) loadGaleria();
@@ -32,9 +131,18 @@ export default function GaleriaPublica() {
         .eq("galeria_id", g.id)
         .order("created_at", { ascending: true });
       setFotos(f || []);
-      // Pre-select already approved photos
       const approved = new Set((f || []).filter((p: any) => p.aprovada).map((p: any) => p.id));
       setSelected(approved);
+
+      // Load watermark config from owner's profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", g.user_id)
+        .single();
+      if (profile) {
+        setCamadas(migrateLegacyWatermark(profile));
+      }
     }
     setLoading(false);
   };
@@ -56,16 +164,9 @@ export default function GaleriaPublica() {
       return;
     }
     setSaving(true);
-    // Set all to not approved first, then approve selected
-    await supabase
-      .from("fotos")
-      .update({ aprovada: false })
-      .eq("galeria_id", galeria.id);
+    await supabase.from("fotos").update({ aprovada: false }).eq("galeria_id", galeria.id);
     if (selected.size > 0) {
-      await supabase
-        .from("fotos")
-        .update({ aprovada: true })
-        .in("id", Array.from(selected));
+      await supabase.from("fotos").update({ aprovada: true }).in("id", Array.from(selected));
     }
     toast.success("Seleção confirmada com sucesso!");
     setSaving(false);
@@ -108,6 +209,8 @@ export default function GaleriaPublica() {
       </div>
     );
 
+  const showWatermark = !isReleased && camadas.length > 0;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -137,19 +240,14 @@ export default function GaleriaPublica() {
         </div>
       )}
 
-      {/* Selection bar (only in preview mode) */}
+      {/* Selection bar */}
       {!isReleased && fotos.length > 0 && (
         <div className="sticky top-[53px] z-10 bg-card/95 backdrop-blur border-b border-border px-4 py-2">
           <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
               <span className="text-foreground font-semibold">{selected.size}</span> foto{selected.size !== 1 ? "s" : ""} selecionada{selected.size !== 1 ? "s" : ""}
             </p>
-            <Button
-              size="sm"
-              onClick={handleConfirmSelection}
-              disabled={saving || selected.size === 0}
-              className="gap-1.5"
-            >
+            <Button size="sm" onClick={handleConfirmSelection} disabled={saving || selected.size === 0} className="gap-1.5">
               <Check className="h-3.5 w-3.5" />
               {saving ? "Salvando..." : "Confirmar seleção"}
             </Button>
@@ -163,10 +261,6 @@ export default function GaleriaPublica() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
             {fotos.map((foto, i) => {
               const isSelected = selected.has(foto.id);
-              const showWatermark = !isReleased;
-              const displayUrl = showWatermark && foto.url_com_marca_dagua
-                ? foto.url_com_marca_dagua
-                : foto.url;
 
               return (
                 <div
@@ -179,14 +273,19 @@ export default function GaleriaPublica() {
                   onClick={() => !isReleased && toggleSelect(foto.id)}
                 >
                   <img
-                    src={displayUrl}
+                    src={foto.url}
                     alt={`Foto ${i + 1}`}
                     className="w-full aspect-square object-cover"
                     loading="lazy"
                   />
 
-                  {/* Watermark overlay text (preview mode) */}
-                  {showWatermark && !foto.url_com_marca_dagua && (
+                  {/* Multi-layer watermark overlay */}
+                  {showWatermark && camadas.map((layer, li) => (
+                    <WatermarkOverlay key={li} layer={layer} index={li} />
+                  ))}
+
+                  {/* Fallback if no layers configured */}
+                  {!isReleased && camadas.length === 0 && !foto.url_com_marca_dagua && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <span className="text-foreground/15 text-base sm:text-lg font-bold rotate-[-30deg] select-none">
                         PRÉVIA
@@ -196,25 +295,20 @@ export default function GaleriaPublica() {
 
                   {/* Selection indicator */}
                   {!isReleased && (
-                    <div
-                      className={`absolute top-2 left-2 h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                        isSelected
-                          ? "bg-primary border-primary text-primary-foreground"
-                          : "bg-background/70 border-muted-foreground/40 backdrop-blur-sm"
-                      }`}
-                    >
+                    <div className={`absolute top-2 left-2 h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                      isSelected
+                        ? "bg-primary border-primary text-primary-foreground"
+                        : "bg-background/70 border-muted-foreground/40 backdrop-blur-sm"
+                    }`}>
                       {isSelected && <Check className="h-3.5 w-3.5" />}
                     </div>
                   )}
 
-                  {/* Download button (released mode) */}
+                  {/* Download button */}
                   {isReleased && (
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(foto.url, i);
-                      }}
-                      className="absolute bottom-2 right-2 bg-primary text-primary-foreground rounded-full p-2 opacity-0 group-hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shadow-lg active:scale-95"
+                      onClick={(e) => { e.stopPropagation(); handleDownload(foto.url, i); }}
+                      className="absolute bottom-2 right-2 bg-primary text-primary-foreground rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg active:scale-95"
                       title="Download"
                     >
                       <Download className="h-4 w-4" />
@@ -231,7 +325,6 @@ export default function GaleriaPublica() {
           </div>
         )}
 
-        {/* Mobile download all button */}
         {isReleased && fotos.length > 0 && (
           <div className="mt-6 sm:hidden">
             <p className="text-xs text-center text-muted-foreground mb-2">

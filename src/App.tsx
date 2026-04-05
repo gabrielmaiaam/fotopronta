@@ -15,6 +15,7 @@ import Pedidos from "./pages/Pedidos";
 import Pagamentos from "./pages/Pagamentos";
 import Configuracoes from "./pages/Configuracoes";
 import GaleriaPublica from "./pages/GaleriaPublica";
+import PreviaRapida from "./pages/PreviaRapida";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/clientes" element={<Clientes />} />
               <Route path="/galerias" element={<Galerias />} />
               <Route path="/galerias/:id" element={<GaleriaDetail />} />
+              <Route path="/previa-rapida" element={<PreviaRapida />} />
               <Route path="/pedidos" element={<Pedidos />} />
               <Route path="/pagamentos" element={<Pagamentos />} />
               <Route path="/configuracoes" element={<Configuracoes />} />

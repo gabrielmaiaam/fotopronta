@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Image, Package, DollarSign, Settings, LogOut, Camera } from "lucide-react";
+import { LayoutDashboard, Users, Image, Zap, Package, DollarSign, Settings, LogOut, Camera } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +21,7 @@ const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Clientes", url: "/clientes", icon: Users },
   { title: "Galerias", url: "/galerias", icon: Image },
+  { title: "Prévia Rápida", url: "/previa-rapida", icon: Zap },
   { title: "Pedidos", url: "/pedidos", icon: Package },
   { title: "Pagamentos", url: "/pagamentos", icon: DollarSign },
   { title: "Configurações", url: "/configuracoes", icon: Settings },

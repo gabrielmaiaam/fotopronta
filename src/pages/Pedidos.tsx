@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,16 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Calendar as CalIcon, List, CheckCircle, Link2, Clock, TrendingUp, CalendarDays } from "lucide-react";
+import { Plus, Calendar as CalIcon, List, Play, Pencil, Trash2, Link2, Clock, TrendingUp, CalendarDays, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { format, differenceInMinutes, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-
 
 export default function Pedidos() {
   const { user } = useAuth();
@@ -23,10 +21,17 @@ export default function Pedidos() {
   const [clientes, setClientes] = useState<any[]>([]);
   const [view, setView] = useState<"list" | "calendar">("list");
   const [modalOpen, setModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editForm, setEditForm] = useState<any>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
-  const [form, setForm] = useState({
-    cliente_id: "", servico: "", data_entrega: "",
-  });
+  const [form, setForm] = useState({ cliente_id: "", servico: "", data_entrega: "" });
+  const [, setTick] = useState(0);
+
+  // Tick every 30s to update cronômetro
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (user) { loadPedidos(); loadClientes(); }
@@ -53,7 +58,6 @@ export default function Pedidos() {
       toast.error("Cliente e serviço são obrigatórios");
       return;
     }
-
     const linkComprovante = crypto.randomUUID().slice(0, 8);
     const tempoEstimado = form.data_entrega
       ? Math.max(differenceInMinutes(new Date(form.data_entrega), new Date()), 1)
@@ -66,10 +70,49 @@ export default function Pedidos() {
       tempo_estimado_minutos: tempoEstimado,
       link_comprovante: linkComprovante,
     });
-
     if (error) { toast.error(error.message); return; }
     toast.success("Pedido criado!");
     setModalOpen(false);
+    loadPedidos();
+  };
+
+  const handleStart = async (id: string) => {
+    await supabase.from("pedidos").update({ status: "em_andamento" }).eq("id", id);
+    toast.success("Pedido iniciado!");
+    loadPedidos();
+  };
+
+  const handleEdit = (p: any) => {
+    setEditForm({
+      id: p.id,
+      cliente_id: p.cliente_id,
+      servico: p.servico,
+      data_entrega: p.data_entrega ? format(new Date(p.data_entrega), "yyyy-MM-dd'T'HH:mm") : "",
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editForm) return;
+    const tempoEstimado = editForm.data_entrega
+      ? Math.max(differenceInMinutes(new Date(editForm.data_entrega), new Date()), 1)
+      : 120;
+    const { error } = await supabase.from("pedidos").update({
+      cliente_id: editForm.cliente_id,
+      servico: editForm.servico,
+      data_entrega: editForm.data_entrega ? new Date(editForm.data_entrega).toISOString() : null,
+      tempo_estimado_minutos: tempoEstimado,
+    }).eq("id", editForm.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pedido atualizado!");
+    setEditModalOpen(false);
+    loadPedidos();
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("pedidos").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pedido excluído!");
     loadPedidos();
   };
 
@@ -99,11 +142,19 @@ export default function Pedidos() {
     return Math.min(Math.round((elapsed / total) * 100), 99);
   };
 
-  const getElapsed = (p: any) => {
-    const mins = differenceInMinutes(new Date(), new Date(p.created_at));
+  const getCronometro = (p: any) => {
+    if (p.status !== "em_andamento") return "—";
+    const mins = differenceInMinutes(new Date(), new Date(p.updated_at));
     const h = Math.floor(mins / 60);
     const m = mins % 60;
     return `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}min`;
+  };
+
+  const formatProximaEntrega = () => {
+    if (!proximaEntrega) return "—";
+    const d = new Date(proximaEntrega.data_entrega);
+    if (isSameDay(d, new Date())) return `Hoje ${format(d, "HH:mm")}`;
+    return format(d, "dd/MM HH:mm");
   };
 
   // Calendar helpers
@@ -132,22 +183,42 @@ export default function Pedidos() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-border bg-card"><CardContent className="p-4">
-          <div className="flex items-center gap-2 text-muted-foreground mb-1"><CalendarDays className="h-4 w-4" /><span className="text-xs">Pedidos Hoje</span></div>
-          <p className="text-2xl font-bold">{todayCount}</p>
-        </CardContent></Card>
-        <Card className="border-border bg-card"><CardContent className="p-4">
-          <div className="flex items-center gap-2 text-info mb-1"><TrendingUp className="h-4 w-4" /><span className="text-xs">Em Andamento</span></div>
-          <p className="text-2xl font-bold text-info">{emAndamento}</p>
-        </CardContent></Card>
-        <Card className="border-border bg-card"><CardContent className="p-4">
-          <div className="flex items-center gap-2 text-muted-foreground mb-1"><Clock className="h-4 w-4" /><span className="text-xs">Próxima Entrega</span></div>
-          <p className="text-sm font-bold">{proximaEntrega ? format(new Date(proximaEntrega.data_entrega), "dd/MM HH:mm") : "—"}</p>
-        </CardContent></Card>
-        <Card className="border-border bg-card"><CardContent className="p-4">
-          <div className="flex items-center gap-2 text-muted-foreground mb-1"><Clock className="h-4 w-4" /><span className="text-xs">Tempo Médio</span></div>
-          <p className="text-sm font-bold">120 min</p>
-        </CardContent></Card>
+        <Card className="border-border bg-card">
+          <CardContent className="p-4 flex justify-between items-start">
+            <div>
+              <p className="text-xs text-muted-foreground font-medium mb-2">Pedidos Hoje</p>
+              <p className="text-2xl font-bold">{todayCount}</p>
+            </div>
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          </CardContent>
+        </Card>
+        <Card className="border-border bg-card">
+          <CardContent className="p-4 flex justify-between items-start">
+            <div>
+              <p className="text-xs text-muted-foreground font-medium mb-2">Em Andamento</p>
+              <p className="text-2xl font-bold">{emAndamento}</p>
+            </div>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardContent>
+        </Card>
+        <Card className="border-border bg-card">
+          <CardContent className="p-4 flex justify-between items-start">
+            <div>
+              <p className="text-xs text-muted-foreground font-medium mb-2">Próxima Entrega</p>
+              <p className="text-lg font-bold">{formatProximaEntrega()}</p>
+            </div>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardContent>
+        </Card>
+        <Card className="border-border bg-card">
+          <CardContent className="p-4 flex justify-between items-start">
+            <div>
+              <p className="text-xs text-muted-foreground font-medium mb-2">Tempo Médio</p>
+              <p className="text-lg font-bold">—</p>
+            </div>
+            <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+          </CardContent>
+        </Card>
       </div>
 
       {/* View Toggle */}
@@ -168,7 +239,7 @@ export default function Pedidos() {
                     <TableHead>Entrega</TableHead>
                     <TableHead>Progresso</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Tempo</TableHead>
+                    <TableHead>Cronômetro</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -177,7 +248,7 @@ export default function Pedidos() {
                     <TableRow key={p.id}>
                       <TableCell>{p.clientes?.nome}</TableCell>
                       <TableCell>{p.servico}</TableCell>
-                      <TableCell>{p.data_entrega ? format(new Date(p.data_entrega), "dd/MM/yyyy HH:mm") : "—"}</TableCell>
+                      <TableCell>{p.data_entrega ? format(new Date(p.data_entrega), "dd/MM/yy HH:mm") : "—"}</TableCell>
                       <TableCell className="min-w-[120px]">
                         <div className="flex items-center gap-2">
                           <Progress value={getProgress(p)} className="h-2 flex-1" />
@@ -185,14 +256,22 @@ export default function Pedidos() {
                         </div>
                       </TableCell>
                       <TableCell><StatusBadge status={p.status} /></TableCell>
-                      <TableCell><span className="text-xs text-info font-mono">{getElapsed(p)}</span></TableCell>
+                      <TableCell>
+                        <span className="text-xs font-mono text-muted-foreground">{getCronometro(p)}</span>
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          {p.status !== "finalizado" && (
-                            <Button variant="ghost" size="icon" onClick={() => markComplete(p.id)} title="Finalizar">
-                              <CheckCircle className="h-4 w-4 text-success" />
+                          {p.status === "aguardando" && (
+                            <Button variant="ghost" size="icon" onClick={() => handleStart(p.id)} title="Iniciar">
+                              <Play className="h-4 w-4" />
                             </Button>
                           )}
+                          <Button variant="ghost" size="icon" onClick={() => handleEdit(p)} title="Editar">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)} title="Excluir">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                           {p.link_comprovante && (
                             <Button variant="ghost" size="icon" onClick={() => copyComprovante(p.link_comprovante)} title="Copiar link">
                               <Link2 className="h-4 w-4" />
@@ -272,6 +351,35 @@ export default function Pedidos() {
           </div>
           <DialogFooter>
             <Button onClick={handleCreate} className="w-full">Criar Pedido</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Modal */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="bg-card border-border max-w-lg">
+          <DialogHeader><DialogTitle className="font-display">Editar Pedido</DialogTitle></DialogHeader>
+          {editForm && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Cliente</Label>
+                <Select value={editForm.cliente_id} onValueChange={(v) => setEditForm({ ...editForm, cliente_id: v })}>
+                  <SelectTrigger className="bg-input border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{clientes.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Serviço</Label>
+                <Input value={editForm.servico} onChange={(e) => setEditForm({ ...editForm, servico: e.target.value })} className="bg-input border-border" />
+              </div>
+              <div className="space-y-2">
+                <Label>Data e hora de entrega</Label>
+                <Input type="datetime-local" value={editForm.data_entrega} onChange={(e) => setEditForm({ ...editForm, data_entrega: e.target.value })} className="bg-input border-border" />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={handleEditSave} className="w-full">Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

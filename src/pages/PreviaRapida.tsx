@@ -7,7 +7,6 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { Eye, ImagePlus, Trash2, Download, Send } from "lucide-react";
-import { Eye, ImagePlus, Trash2, Download, Send } from "lucide-react";
 import { toast } from "sonner";
 import JSZip from "jszip";
 
@@ -65,7 +64,7 @@ export default function PreviaRapida() {
           setLogoUrl(data.marca_dagua_url);
         }
       });
-  }, [user]);
+  }, []);
 
   const applyWatermark = useCallback(
     async (file: File): Promise<ProcessedPhoto> => {
@@ -199,7 +198,7 @@ export default function PreviaRapida() {
   };
 
   const sendAll = async () => {
-    if (!user || photos.length === 0) return;
+    if (photos.length === 0) return;
     const cleanNumber = whatsapp.replace(/\D/g, "");
     if (cleanNumber.length < 10) {
       toast.error("Informe um número de WhatsApp válido");

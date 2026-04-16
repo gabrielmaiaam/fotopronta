@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { StatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { ArrowLeft, Upload, Trash2, Unlock, Link2, QrCode, Info, Check, Lock } from "lucide-react";
 import { toast } from "sonner";
 import WatermarkEditor, { type WatermarkLayer } from "@/components/WatermarkEditor";
@@ -50,7 +49,7 @@ function migrateLegacyWatermark(profile: any): WatermarkLayer[] {
 
 export default function GaleriaDetail() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const navigate = useNavigate();
   const navigate = useNavigate();
 
   const [galeria, setGaleria] = useState<any>(null);
@@ -65,14 +64,14 @@ export default function GaleriaDetail() {
   const [precoAvulso, setPrecoAvulso] = useState("");
 
   useEffect(() => {
-    if (user && id) loadData();
-  }, [user, id]);
+    if (id) loadData();
+  }, [id]);
 
   const loadData = async () => {
     const [{ data: g }, { data: f }, { data: p }] = await Promise.all([
       supabase.from("galerias").select("*, clientes(nome)").eq("id", id!).single(),
       supabase.from("fotos").select("*").eq("galeria_id", id!).order("created_at", { ascending: true }),
-      supabase.from("profiles").select("*").eq("user_id", user!.id).single(),
+      supabase.from("profiles").select("*").limit(1).single(),
     ]);
 
     setGaleria(g);
@@ -85,10 +84,10 @@ export default function GaleriaDetail() {
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !user || !id) return;
+    if (!e.target.files || !id) return;
     setUploading(true);
     for (const file of Array.from(e.target.files)) {
-      const filePath = `${user.id}/${id}/${crypto.randomUUID()}.${file.name.split(".").pop()}`;
+      const filePath = `uploads/${id}/${crypto.randomUUID()}.${file.name.split(".").pop()}`;
       const { error: uploadError } = await supabase.storage.from("fotos").upload(filePath, file);
       if (uploadError) { toast.error(`Erro ao enviar ${file.name}`); continue; }
       const { data: { publicUrl } } = supabase.storage.from("fotos").getPublicUrl(filePath);
@@ -152,10 +151,12 @@ export default function GaleriaDetail() {
   }, [user, id]);
 
   const saveMarcaDagua = async () => {
-    if (!user) return;
+    if (!galeria) return;
+    const { data: p } = await supabase.from("profiles").select("id").limit(1).single();
+    if (!p) return;
     const { error } = await supabase.from("profiles").update({
       marca_dagua_camadas: camadas as any,
-    } as any).eq("user_id", user.id);
+    } as any).eq("id", p.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Marca d'água salva!");
   };
@@ -213,11 +214,10 @@ export default function GaleriaDetail() {
         <div className="grid md:grid-cols-[35%_1fr] gap-4">
           {/* LEFT — Watermark */}
           <div className="space-y-3">
-            {user && (
-              <WatermarkEditor
+            <WatermarkEditor
                 camadas={camadas}
                 onChange={setCamadas}
-                userId={user.id}
+                userId="uploads"
                 compact
               />
             )}

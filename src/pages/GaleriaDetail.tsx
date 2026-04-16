@@ -220,7 +220,6 @@ export default function GaleriaDetail() {
                 userId="uploads"
                 compact
               />
-            )}
             <Button size="sm" onClick={saveMarcaDagua} className="w-full">Salvar marca d'água</Button>
             <p className="text-[10px] text-muted-foreground text-center flex items-center gap-1 justify-center">
               <Info className="h-3 w-3 shrink-0" /> A marca d'água é aplicada automaticamente

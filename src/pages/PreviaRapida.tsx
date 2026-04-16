@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { Eye, ImagePlus, Trash2, Download, Send } from "lucide-react";
 import { Eye, ImagePlus, Trash2, Download, Send } from "lucide-react";
 import { toast } from "sonner";
 import JSZip from "jszip";
@@ -28,7 +28,6 @@ const POSITIONS = [
 ];
 
 export default function PreviaRapida() {
-  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
@@ -44,11 +43,10 @@ export default function PreviaRapida() {
 
   // Load logo from profile
   useEffect(() => {
-    if (!user) return;
     supabase
       .from("profiles")
       .select("marca_dagua_camadas, marca_dagua_url")
-      .eq("user_id", user.id)
+      .limit(1)
       .single()
       .then(({ data }) => {
         if (!data) return;
@@ -217,7 +215,7 @@ export default function PreviaRapida() {
           continue;
         }
         const ext = photo.name.split(".").pop() || "jpg";
-        const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const filePath = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error } = await supabase.storage.from("previa-rapida").upload(filePath, photo.blob, { upsert: true });
         if (error) throw error;
         const { data: { publicUrl } } = supabase.storage.from("previa-rapida").getPublicUrl(filePath);

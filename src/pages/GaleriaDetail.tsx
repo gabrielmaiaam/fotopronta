@@ -50,7 +50,6 @@ function migrateLegacyWatermark(profile: any): WatermarkLayer[] {
 export default function GaleriaDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const navigate = useNavigate();
 
   const [galeria, setGaleria] = useState<any>(null);
   const [fotos, setFotos] = useState<any[]>([]);
@@ -148,7 +147,7 @@ export default function GaleriaDetail() {
       const fakeEvent = { target: { files: dt.files } } as any;
       handleUpload(fakeEvent);
     }
-  }, [user, id]);
+  }, [id]);
 
   const saveMarcaDagua = async () => {
     if (!galeria) return;

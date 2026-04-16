@@ -126,7 +126,7 @@ export default function Configuracoes() {
               </div>
               <div className="space-y-2">
                 <Label>Email</Label>
-                <Input value={user?.email || ""} disabled className="bg-input border-border opacity-60" />
+                <Input value={profile?.email || ""} disabled className="bg-input border-border opacity-60" />
               </div>
               <div className="space-y-2">
                 <Label>Plano</Label>
@@ -197,12 +197,10 @@ export default function Configuracoes() {
         </TabsContent>
 
         <TabsContent value="marca">
-          {user && (
-            <>
               <WatermarkEditor
                 camadas={camadas}
                 onChange={setCamadas}
-                userId={user.id}
+                userId="uploads"
               />
               <div className="flex items-center gap-3 mt-4">
                 <Button onClick={saveMarcaDagua}>Salvar configurações de marca d'água</Button>

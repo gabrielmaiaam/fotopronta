@@ -209,8 +209,6 @@ export default function Configuracoes() {
                   As configurações são aplicadas automaticamente no upload das fotos. Fotos já enviadas não são alteradas.
                 </p>
               </div>
-            </>
-          )}
         </TabsContent>
       </Tabs>
     </div>

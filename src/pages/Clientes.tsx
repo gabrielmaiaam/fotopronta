@@ -21,7 +21,6 @@ type Etiqueta = { id: string; nome: string; cor: string };
 
 export default function Clientes() {
   const navigate = useNavigate();
-  const navigate = useNavigate();
   const [clientes, setClientes] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);

@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { Download, Info } from "lucide-react";
 import { toast } from "sonner";
 import { generatePixPayload } from "@/lib/pix";
@@ -52,7 +51,6 @@ function migrateLegacyWatermark(profile: any): WatermarkLayer[] {
 }
 
 export default function Configuracoes() {
-  const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [nome, setNome] = useState("");
   const [chavePix, setChavePix] = useState("");
@@ -61,12 +59,11 @@ export default function Configuracoes() {
   const [camadas, setCamadas] = useState<WatermarkLayer[]>([]);
 
   useEffect(() => {
-    if (user) loadProfile();
-  }, [user]);
+    loadProfile();
+  }, []);
 
   const loadProfile = async () => {
-    if (!user) return;
-    const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
+    const { data } = await supabase.from("profiles").select("*").limit(1).single();
     if (data) {
       setProfile(data);
       setNome(data.nome);
@@ -78,28 +75,28 @@ export default function Configuracoes() {
   };
 
   const saveProfile = async () => {
-    if (!user) return;
-    const { error } = await supabase.from("profiles").update({ nome }).eq("user_id", user.id);
+    if (!profile) return;
+    const { error } = await supabase.from("profiles").update({ nome }).eq("id", profile.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Perfil salvo!");
   };
 
   const savePix = async () => {
-    if (!user) return;
+    if (!profile) return;
     const { error } = await supabase.from("profiles").update({
       chave_pix: chavePix,
       nome_recebedor: nomeRecebedor,
       cidade,
-    }).eq("user_id", user.id);
+    }).eq("id", profile.id);
     if (error) { toast.error(error.message); return; }
     toast.success("PIX salvo!");
   };
 
   const saveMarcaDagua = async () => {
-    if (!user) return;
+    if (!profile) return;
     const { error } = await supabase.from("profiles").update({
       marca_dagua_camadas: camadas as any,
-    } as any).eq("user_id", user.id);
+    } as any).eq("id", profile.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Marca d'água salva!");
   };
@@ -129,7 +126,7 @@ export default function Configuracoes() {
               </div>
               <div className="space-y-2">
                 <Label>Email</Label>
-                <Input value={user?.email || ""} disabled className="bg-input border-border opacity-60" />
+                <Input value={profile?.email || ""} disabled className="bg-input border-border opacity-60" />
               </div>
               <div className="space-y-2">
                 <Label>Plano</Label>
@@ -200,12 +197,10 @@ export default function Configuracoes() {
         </TabsContent>
 
         <TabsContent value="marca">
-          {user && (
-            <>
               <WatermarkEditor
                 camadas={camadas}
                 onChange={setCamadas}
-                userId={user.id}
+                userId="uploads"
               />
               <div className="flex items-center gap-3 mt-4">
                 <Button onClick={saveMarcaDagua}>Salvar configurações de marca d'água</Button>
@@ -214,8 +209,6 @@ export default function Configuracoes() {
                   As configurações são aplicadas automaticamente no upload das fotos. Fotos já enviadas não são alteradas.
                 </p>
               </div>
-            </>
-          )}
         </TabsContent>
       </Tabs>
     </div>

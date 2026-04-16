@@ -4,32 +4,27 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { Image, DollarSign, Clock, Users } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 type Period = "today" | "7days" | "30days" | "month";
 
 export default function Dashboard() {
-  const { user } = useAuth();
   const [period, setPeriod] = useState<Period>("30days");
   const [stats, setStats] = useState({ galerias: 0, receita: 0, pendentes: 0, clientes: 0 });
   const [recentGalerias, setRecentGalerias] = useState<any[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!user) return;
     loadData();
-  }, [user, period]);
+  }, [period]);
 
   const loadData = async () => {
-    if (!user) return;
-
     const [galeriasRes, clientesRes, pagamentosRes, recentRes] = await Promise.all([
-      supabase.from("galerias").select("id").eq("user_id", user.id),
-      supabase.from("clientes").select("id").eq("user_id", user.id),
-      supabase.from("pagamentos").select("*").eq("user_id", user.id),
-      supabase.from("galerias").select("*, clientes(nome)").eq("user_id", user.id)
+      supabase.from("galerias").select("id"),
+      supabase.from("clientes").select("id"),
+      supabase.from("pagamentos").select("*"),
+      supabase.from("galerias").select("*, clientes(nome)")
         .order("created_at", { ascending: false }).limit(5),
     ]);
 

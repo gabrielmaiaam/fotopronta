@@ -4,26 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { DollarSign, TrendingUp, Clock, Percent, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
 export default function Pagamentos() {
-  const { user } = useAuth();
   const [pagamentos, setPagamentos] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState("todos");
 
   useEffect(() => {
-    if (user) loadPagamentos();
-  }, [user]);
+    loadPagamentos();
+  }, []);
 
   const loadPagamentos = async () => {
-    if (!user) return;
     const { data } = await supabase
       .from("pagamentos")
       .select("*, clientes(nome), pedidos(servico)")
-      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     setPagamentos(data || []);
   };

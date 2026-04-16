@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { Plus, Search, Image, Pencil, Trash2, Tag, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -21,7 +20,6 @@ const CORES = [
 type Etiqueta = { id: string; nome: string; cor: string };
 
 export default function Clientes() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [clientes, setClientes] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -38,18 +36,14 @@ export default function Clientes() {
   const [editEtiquetasSelecionadas, setEditEtiquetasSelecionadas] = useState<string[]>([]);
 
   useEffect(() => {
-    if (user) {
-      loadClientes();
-      loadEtiquetas();
-    }
-  }, [user]);
+    loadClientes();
+    loadEtiquetas();
+  }, []);
 
   const loadClientes = async () => {
-    if (!user) return;
     const { data } = await supabase
       .from("clientes")
       .select("*, galerias(id)")
-      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     setClientes(data || []);
     // Load junction
@@ -66,19 +60,17 @@ export default function Clientes() {
   };
 
   const loadEtiquetas = async () => {
-    if (!user) return;
     const { data } = await supabase
       .from("etiquetas")
       .select("*")
-      .eq("user_id", user.id)
       .order("created_at", { ascending: true });
     setEtiquetas(data || []);
   };
 
   const criarEtiqueta = async () => {
-    if (!user || !novaEtiqueta.trim()) return;
+    if (!novaEtiqueta.trim()) return;
     const { error } = await supabase.from("etiquetas").insert({
-      user_id: user.id,
+      user_id: "00000000-0000-0000-0000-000000000000",
       nome: novaEtiqueta.trim(),
       cor: corSelecionada,
     });
@@ -115,7 +107,7 @@ export default function Clientes() {
   };
 
   const handleSave = async () => {
-    if (!user || !form.nome.trim()) {
+    if (!form.nome.trim()) {
       toast.error("Nome é obrigatório");
       return;
     }
@@ -131,7 +123,7 @@ export default function Clientes() {
     } else {
       const { data, error } = await supabase
         .from("clientes")
-        .insert({ user_id: user.id, nome: form.nome, whatsapp: form.whatsapp || null, email: form.email || null })
+        .insert({ user_id: "00000000-0000-0000-0000-000000000000", nome: form.nome, whatsapp: form.whatsapp || null, email: form.email || null })
         .select("id")
         .single();
       if (error) { toast.error(error.message); return; }

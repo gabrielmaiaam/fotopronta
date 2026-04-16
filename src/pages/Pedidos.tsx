@@ -9,14 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { StatusBadge } from "@/components/StatusBadge";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { Plus, Calendar as CalIcon, List, Play, Pencil, Trash2, Link2, Clock, TrendingUp, CalendarDays, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { format, differenceInMinutes, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default function Pedidos() {
-  const { user } = useAuth();
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [view, setView] = useState<"list" | "calendar">("list");
@@ -34,27 +32,24 @@ export default function Pedidos() {
   }, []);
 
   useEffect(() => {
-    if (user) { loadPedidos(); loadClientes(); }
-  }, [user]);
+    loadPedidos(); loadClientes();
+  }, []);
 
   const loadPedidos = async () => {
-    if (!user) return;
     const { data } = await supabase
       .from("pedidos")
       .select("*, clientes(nome)")
-      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     setPedidos(data || []);
   };
 
   const loadClientes = async () => {
-    if (!user) return;
-    const { data } = await supabase.from("clientes").select("id, nome").eq("user_id", user.id);
+    const { data } = await supabase.from("clientes").select("id, nome");
     setClientes(data || []);
   };
 
   const handleCreate = async () => {
-    if (!user || !form.cliente_id || !form.servico.trim()) {
+    if (!form.cliente_id || !form.servico.trim()) {
       toast.error("Cliente e serviço são obrigatórios");
       return;
     }
@@ -63,7 +58,7 @@ export default function Pedidos() {
       ? Math.max(differenceInMinutes(new Date(form.data_entrega), new Date()), 1)
       : 120;
     const { error } = await supabase.from("pedidos").insert({
-      user_id: user.id,
+      user_id: "00000000-0000-0000-0000-000000000000",
       cliente_id: form.cliente_id,
       servico: form.servico,
       data_entrega: form.data_entrega ? new Date(form.data_entrega).toISOString() : null,

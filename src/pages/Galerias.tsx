@@ -8,14 +8,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { Plus, Search, Eye, Upload, Trash2, Copy, X } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 
 export default function Galerias() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [galerias, setGalerias] = useState<any[]>([]);
@@ -29,22 +27,19 @@ export default function Galerias() {
   });
 
   useEffect(() => {
-    if (user) { loadGalerias(); loadClientes(); }
-  }, [user]);
+    loadGalerias(); loadClientes();
+  }, []);
 
   const loadGalerias = async () => {
-    if (!user) return;
     const { data } = await supabase
       .from("galerias")
       .select("*, clientes(nome), fotos(id)")
-      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     setGalerias(data || []);
   };
 
   const loadClientes = async () => {
-    if (!user) return;
-    const { data } = await supabase.from("clientes").select("id, nome").eq("user_id", user.id);
+    const { data } = await supabase.from("clientes").select("id, nome");
     setClientes(data || []);
   };
 
@@ -63,14 +58,14 @@ export default function Galerias() {
   };
 
   const handleCreate = async () => {
-    if (!user || !form.titulo.trim() || !form.cliente_id) {
+    if (!form.titulo.trim() || !form.cliente_id) {
       toast.error("Título e cliente são obrigatórios");
       return;
     }
 
     const linkPublico = crypto.randomUUID().slice(0, 8);
     const { error } = await supabase.from("galerias").insert({
-      user_id: user.id,
+      user_id: "00000000-0000-0000-0000-000000000000",
       cliente_id: form.cliente_id,
       titulo: form.titulo,
       valor_total: parseFloat(form.valor_total) || 0,

@@ -22,7 +22,7 @@ export default function Pedidos() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
-  const [form, setForm] = useState({ cliente_id: "", servico: "", data_entrega: "" });
+  const [form, setForm] = useState({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "" });
   const [, setTick] = useState(0);
 
   // Tick every 30s to update cronômetro
@@ -53,6 +53,10 @@ export default function Pedidos() {
       toast.error("Cliente e serviço são obrigatórios");
       return;
     }
+    if (!form.origem_cliente) {
+      toast.error("Selecione a origem do cliente");
+      return;
+    }
     const linkComprovante = crypto.randomUUID().slice(0, 8);
     const tempoEstimado = form.data_entrega
       ? Math.max(differenceInMinutes(new Date(form.data_entrega), new Date()), 1)
@@ -64,6 +68,7 @@ export default function Pedidos() {
       data_entrega: form.data_entrega ? new Date(form.data_entrega).toISOString() : null,
       tempo_estimado_minutos: tempoEstimado,
       link_comprovante: linkComprovante,
+      origem_cliente: form.origem_cliente,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Pedido criado!");
@@ -83,12 +88,17 @@ export default function Pedidos() {
       cliente_id: p.cliente_id,
       servico: p.servico,
       data_entrega: p.data_entrega ? format(new Date(p.data_entrega), "yyyy-MM-dd'T'HH:mm") : "",
+      origem_cliente: p.origem_cliente || "",
     });
     setEditModalOpen(true);
   };
 
   const handleEditSave = async () => {
     if (!editForm) return;
+    if (!editForm.origem_cliente) {
+      toast.error("Selecione a origem do cliente");
+      return;
+    }
     const tempoEstimado = editForm.data_entrega
       ? Math.max(differenceInMinutes(new Date(editForm.data_entrega), new Date()), 1)
       : 120;
@@ -97,6 +107,7 @@ export default function Pedidos() {
       servico: editForm.servico,
       data_entrega: editForm.data_entrega ? new Date(editForm.data_entrega).toISOString() : null,
       tempo_estimado_minutos: tempoEstimado,
+      origem_cliente: editForm.origem_cliente,
     }).eq("id", editForm.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Pedido atualizado!");

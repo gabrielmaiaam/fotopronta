@@ -126,7 +126,7 @@ export default function Pagamentos() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-display font-bold">Pagamentos & Financeiro</h1>
+      <h1 className="text-2xl font-display font-bold">Financeiro</h1>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

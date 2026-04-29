@@ -352,6 +352,19 @@ export default function Pedidos() {
               <Label>Data e hora de entrega</Label>
               <Input type="datetime-local" value={form.data_entrega} onChange={(e) => setForm({ ...form, data_entrega: e.target.value })} className="bg-input border-border" />
             </div>
+            <div className="space-y-2">
+              <Label>Origem do cliente *</Label>
+              <Select value={form.origem_cliente} onValueChange={(v) => setForm({ ...form, origem_cliente: v })}>
+                <SelectTrigger className="bg-input border-border"><SelectValue placeholder="De onde veio o cliente?" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="meta_ads">📢 Meta Ads</SelectItem>
+                  <SelectItem value="indicacao">👥 Indicação</SelectItem>
+                  <SelectItem value="instagram_organico">📱 Instagram Orgânico</SelectItem>
+                  <SelectItem value="whatsapp_direto">💬 WhatsApp Direto</SelectItem>
+                  <SelectItem value="outro">🔗 Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <p className="text-xs text-muted-foreground">⏱ O tempo estimado será calculado automaticamente ao iniciar o pedido (da hora atual até a data de entrega).</p>
             <p className="text-xs text-muted-foreground">◆ Ao criar: comprovante gerado automaticamente com link para o cliente acompanhar</p>
           </div>
@@ -381,6 +394,19 @@ export default function Pedidos() {
               <div className="space-y-2">
                 <Label>Data e hora de entrega</Label>
                 <Input type="datetime-local" value={editForm.data_entrega} onChange={(e) => setEditForm({ ...editForm, data_entrega: e.target.value })} className="bg-input border-border" />
+              </div>
+              <div className="space-y-2">
+                <Label>Origem do cliente *</Label>
+                <Select value={editForm.origem_cliente} onValueChange={(v) => setEditForm({ ...editForm, origem_cliente: v })}>
+                  <SelectTrigger className="bg-input border-border"><SelectValue placeholder="De onde veio o cliente?" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="meta_ads">📢 Meta Ads</SelectItem>
+                    <SelectItem value="indicacao">👥 Indicação</SelectItem>
+                    <SelectItem value="instagram_organico">📱 Instagram Orgânico</SelectItem>
+                    <SelectItem value="whatsapp_direto">💬 WhatsApp Direto</SelectItem>
+                    <SelectItem value="outro">🔗 Outro</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}

@@ -77,6 +77,39 @@ export type Database = {
         }
         Relationships: []
       }
+      despesas: {
+        Row: {
+          categoria: string
+          created_at: string
+          id: string
+          nome: string
+          recorrente: boolean
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          categoria?: string
+          created_at?: string
+          id?: string
+          nome: string
+          recorrente?: boolean
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          recorrente?: boolean
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       etiquetas: {
         Row: {
           cor: string
@@ -189,6 +222,33 @@ export type Database = {
           },
         ]
       }
+      meta_ads_investimentos: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          taxa_imposto: number
+          user_id: string
+          valor_investido: number
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          id?: string
+          taxa_imposto?: number
+          user_id?: string
+          valor_investido?: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          taxa_imposto?: number
+          user_id?: string
+          valor_investido?: number
+        }
+        Relationships: []
+      }
       pagamentos: {
         Row: {
           cliente_id: string
@@ -248,6 +308,7 @@ export type Database = {
           express: boolean
           id: string
           link_comprovante: string | null
+          origem_cliente: string | null
           pacote: string | null
           servico: string
           status: string
@@ -263,6 +324,7 @@ export type Database = {
           express?: boolean
           id?: string
           link_comprovante?: string | null
+          origem_cliente?: string | null
           pacote?: string | null
           servico: string
           status?: string
@@ -278,6 +340,7 @@ export type Database = {
           express?: boolean
           id?: string
           link_comprovante?: string | null
+          origem_cliente?: string | null
           pacote?: string | null
           servico?: string
           status?: string
@@ -312,6 +375,7 @@ export type Database = {
           marca_dagua_texto_tamanho: number
           marca_dagua_tipo: string
           marca_dagua_url: string | null
+          meta_ads_taxa_imposto: number
           nome: string
           nome_recebedor: string | null
           plano: string
@@ -333,6 +397,7 @@ export type Database = {
           marca_dagua_texto_tamanho?: number
           marca_dagua_tipo?: string
           marca_dagua_url?: string | null
+          meta_ads_taxa_imposto?: number
           nome?: string
           nome_recebedor?: string | null
           plano?: string
@@ -354,6 +419,7 @@ export type Database = {
           marca_dagua_texto_tamanho?: number
           marca_dagua_tipo?: string
           marca_dagua_url?: string | null
+          meta_ads_taxa_imposto?: number
           nome?: string
           nome_recebedor?: string | null
           plano?: string

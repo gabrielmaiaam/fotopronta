@@ -22,7 +22,7 @@ export default function Pedidos() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
-  const [form, setForm] = useState({ cliente_id: "", servico: "", data_entrega: "" });
+  const [form, setForm] = useState({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "" });
   const [, setTick] = useState(0);
 
   // Tick every 30s to update cronômetro
@@ -53,6 +53,10 @@ export default function Pedidos() {
       toast.error("Cliente e serviço são obrigatórios");
       return;
     }
+    if (!form.origem_cliente) {
+      toast.error("Selecione a origem do cliente");
+      return;
+    }
     const linkComprovante = crypto.randomUUID().slice(0, 8);
     const tempoEstimado = form.data_entrega
       ? Math.max(differenceInMinutes(new Date(form.data_entrega), new Date()), 1)
@@ -64,6 +68,7 @@ export default function Pedidos() {
       data_entrega: form.data_entrega ? new Date(form.data_entrega).toISOString() : null,
       tempo_estimado_minutos: tempoEstimado,
       link_comprovante: linkComprovante,
+      origem_cliente: form.origem_cliente,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Pedido criado!");
@@ -83,12 +88,17 @@ export default function Pedidos() {
       cliente_id: p.cliente_id,
       servico: p.servico,
       data_entrega: p.data_entrega ? format(new Date(p.data_entrega), "yyyy-MM-dd'T'HH:mm") : "",
+      origem_cliente: p.origem_cliente || "",
     });
     setEditModalOpen(true);
   };
 
   const handleEditSave = async () => {
     if (!editForm) return;
+    if (!editForm.origem_cliente) {
+      toast.error("Selecione a origem do cliente");
+      return;
+    }
     const tempoEstimado = editForm.data_entrega
       ? Math.max(differenceInMinutes(new Date(editForm.data_entrega), new Date()), 1)
       : 120;
@@ -97,6 +107,7 @@ export default function Pedidos() {
       servico: editForm.servico,
       data_entrega: editForm.data_entrega ? new Date(editForm.data_entrega).toISOString() : null,
       tempo_estimado_minutos: tempoEstimado,
+      origem_cliente: editForm.origem_cliente,
     }).eq("id", editForm.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Pedido atualizado!");
@@ -171,7 +182,7 @@ export default function Pedidos() {
           <h1 className="text-2xl font-display font-bold">Pedidos</h1>
           <p className="text-sm text-muted-foreground">Gerencie seus pedidos e acompanhe o progresso</p>
         </div>
-        <Button onClick={() => { setForm({ cliente_id: "", servico: "", data_entrega: "" }); setModalOpen(true); }}>
+        <Button onClick={() => { setForm({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "" }); setModalOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Novo Pedido
         </Button>
       </div>
@@ -341,6 +352,19 @@ export default function Pedidos() {
               <Label>Data e hora de entrega</Label>
               <Input type="datetime-local" value={form.data_entrega} onChange={(e) => setForm({ ...form, data_entrega: e.target.value })} className="bg-input border-border" />
             </div>
+            <div className="space-y-2">
+              <Label>Origem do cliente *</Label>
+              <Select value={form.origem_cliente} onValueChange={(v) => setForm({ ...form, origem_cliente: v })}>
+                <SelectTrigger className="bg-input border-border"><SelectValue placeholder="De onde veio o cliente?" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="meta_ads">📢 Meta Ads</SelectItem>
+                  <SelectItem value="indicacao">👥 Indicação</SelectItem>
+                  <SelectItem value="instagram_organico">📱 Instagram Orgânico</SelectItem>
+                  <SelectItem value="whatsapp_direto">💬 WhatsApp Direto</SelectItem>
+                  <SelectItem value="outro">🔗 Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <p className="text-xs text-muted-foreground">⏱ O tempo estimado será calculado automaticamente ao iniciar o pedido (da hora atual até a data de entrega).</p>
             <p className="text-xs text-muted-foreground">◆ Ao criar: comprovante gerado automaticamente com link para o cliente acompanhar</p>
           </div>
@@ -370,6 +394,19 @@ export default function Pedidos() {
               <div className="space-y-2">
                 <Label>Data e hora de entrega</Label>
                 <Input type="datetime-local" value={editForm.data_entrega} onChange={(e) => setEditForm({ ...editForm, data_entrega: e.target.value })} className="bg-input border-border" />
+              </div>
+              <div className="space-y-2">
+                <Label>Origem do cliente *</Label>
+                <Select value={editForm.origem_cliente} onValueChange={(v) => setEditForm({ ...editForm, origem_cliente: v })}>
+                  <SelectTrigger className="bg-input border-border"><SelectValue placeholder="De onde veio o cliente?" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="meta_ads">📢 Meta Ads</SelectItem>
+                    <SelectItem value="indicacao">👥 Indicação</SelectItem>
+                    <SelectItem value="instagram_organico">📱 Instagram Orgânico</SelectItem>
+                    <SelectItem value="whatsapp_direto">💬 WhatsApp Direto</SelectItem>
+                    <SelectItem value="outro">🔗 Outro</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}

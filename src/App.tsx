@@ -34,7 +34,7 @@ const App = () => (
             <Route path="/galerias/:id" element={<GaleriaDetail />} />
             <Route path="/previa-rapida" element={<PreviaRapida />} />
             <Route path="/pedidos" element={<Pedidos />} />
-            <Route path="/pagamentos" element={<Pagamentos />} />
+            <Route path="/financeiro" element={<Pagamentos />} />
             <Route path="/meta-ads" element={<MetaAds />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
           </Route>

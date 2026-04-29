@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Image, Zap, Package, DollarSign, Settings, Camera } from "lucide-react";
+import { LayoutDashboard, Users, Image, Zap, Package, DollarSign, Megaphone, Settings, Camera } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -18,6 +18,7 @@ const menuItems = [
   { title: "Prévia Rápida", url: "/previa-rapida", icon: Zap },
   { title: "Pedidos", url: "/pedidos", icon: Package },
   { title: "Pagamentos", url: "/pagamentos", icon: DollarSign },
+  { title: "Meta Ads", url: "/meta-ads", icon: Megaphone },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 

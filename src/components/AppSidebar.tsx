@@ -17,7 +17,7 @@ const menuItems = [
   { title: "Galerias", url: "/galerias", icon: Image },
   { title: "Prévia Rápida", url: "/previa-rapida", icon: Zap },
   { title: "Pedidos", url: "/pedidos", icon: Package },
-  { title: "Pagamentos", url: "/pagamentos", icon: DollarSign },
+  { title: "Financeiro", url: "/financeiro ", icon: DollarSign },
   { title: "Meta Ads", url: "/meta-ads", icon: Megaphone },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];

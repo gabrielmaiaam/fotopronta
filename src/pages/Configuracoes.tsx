@@ -369,6 +369,49 @@ export default function Configuracoes() {
                 </p>
               </div>
         </TabsContent>
+
+        <TabsContent value="backup">
+          <Card className="border-border bg-card max-w-2xl">
+            <CardContent className="p-6 space-y-6">
+              <div>
+                <h3 className="font-display text-lg font-semibold">Backup completo</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Gera um arquivo Excel (.xlsx) com todas as tabelas do sistema: clientes, galerias, pedidos, financeiro e despesas.
+                </p>
+              </div>
+              <Button onClick={exportAll} disabled={exportingAll} size="lg" className="w-full sm:w-auto">
+                {exportingAll ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                {exportingAll ? "Gerando..." : "⬇️ Exportar tudo em Excel"}
+              </Button>
+
+              <div className="border-t border-border pt-6">
+                <h3 className="font-display text-lg font-semibold mb-1">Exportações individuais</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Baixe apenas a tabela que você precisa.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Button variant="outline" onClick={exportClientes} disabled={exportingClientes}>
+                    {exportingClientes ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                    {exportingClientes ? "Gerando..." : "⬇️ Exportar só Clientes"}
+                  </Button>
+                  <Button variant="outline" onClick={exportPedidos} disabled={exportingPedidos}>
+                    {exportingPedidos ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                    {exportingPedidos ? "Gerando..." : "⬇️ Exportar só Pedidos"}
+                  </Button>
+                  <Button variant="outline" onClick={exportFinanceiro} disabled={exportingFinanceiro}>
+                    {exportingFinanceiro ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                    {exportingFinanceiro ? "Gerando..." : "⬇️ Exportar só Financeiro"}
+                  </Button>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground flex items-start gap-1 pt-2 border-t border-border">
+                <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                Os arquivos são gerados no seu navegador e baixados automaticamente. Nome do arquivo: FotoPronta_Backup_DD-MM-AAAA.xlsx
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );

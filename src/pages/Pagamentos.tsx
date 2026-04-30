@@ -178,8 +178,26 @@ export default function Pagamentos() {
           </Button>
         </CardHeader>
         <CardContent>
-          {despesas.length > 0 ? (
+          {(despesas.length > 0 || metaAdsMesAtual.total > 0) ? (
             <div className="space-y-2">
+              {metaAdsMesAtual.total > 0 && (
+                <div className="flex items-center gap-3 p-3 rounded-md border border-border bg-background/50">
+                  <div className="flex-1">
+                    <p className="font-medium">📢 Meta Ads</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="text-xs">Marketing</Badge>
+                      <Badge variant="secondary" className="text-xs" title="Calculado a partir dos lançamentos em Meta Ads">Automático</Badge>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">R$</span>
+                    <span className="w-24 h-8 inline-flex items-center justify-end px-2 text-sm font-medium">
+                      {Number(metaAdsMesAtual.total).toFixed(2).replace(".", ",")}
+                    </span>
+                  </div>
+                  <div className="w-9" />
+                </div>
+              )}
               {despesas.map(d => (
                 <div key={d.id} className="flex items-center gap-3 p-3 rounded-md border border-border bg-background/50">
                   <div className="flex-1">

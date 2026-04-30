@@ -25,6 +25,8 @@ const formatCurrency = (v: number) => `R$ ${Number(v || 0).toFixed(2).replace(".
 export default function Pagamentos() {
   const [pagamentos, setPagamentos] = useState<any[]>([]);
   const [despesas, setDespesas] = useState<any[]>([]);
+  const [metaInvestimentos, setMetaInvestimentos] = useState<any[]>([]);
+  const [taxaMetaAds, setTaxaMetaAds] = useState(14);
   const [statusFilter, setStatusFilter] = useState("todos");
 
   // DRE filter
@@ -41,12 +43,25 @@ export default function Pagamentos() {
   }, []);
 
   const loadAll = async () => {
-    const [pg, dp] = await Promise.all([
+    const [pg, dp, mi, pf] = await Promise.all([
       supabase.from("pagamentos").select("*, clientes(nome), pedidos(servico, origem_cliente)").order("created_at", { ascending: false }),
       supabase.from("despesas").select("*").order("created_at", { ascending: false }),
+      supabase.from("meta_ads_investimentos").select("*"),
+      supabase.from("profiles").select("meta_ads_taxa_imposto").limit(1).single(),
     ]);
     setPagamentos(pg.data || []);
     setDespesas(dp.data || []);
+    setMetaInvestimentos(mi.data || []);
+    if (pf.data) setTaxaMetaAds(Number(pf.data.meta_ads_taxa_imposto ?? 14));
+  };
+
+  // Helper: total Meta Ads (investido + imposto) num intervalo
+  const calcMetaAdsTotal = (start: Date, end: Date) => {
+    const investido = metaInvestimentos
+      .filter(i => { const d = new Date(i.data + "T00:00:00"); return d >= start && d <= end; })
+      .reduce((s, i) => s + Number(i.valor_investido), 0);
+    const imposto = investido * (taxaMetaAds / 100);
+    return { investido, imposto, total: investido + imposto };
   };
 
   // Período corrente (mês atual) para os cards de topo
@@ -60,7 +75,9 @@ export default function Pagamentos() {
     })
     .reduce((s, p) => s + Number(p.valor_pago), 0);
 
-  const despesasMes = despesas.reduce((s, d) => s + Number(d.valor), 0);
+  const despesasManuaisMes = despesas.reduce((s, d) => s + Number(d.valor), 0);
+  const metaAdsMesAtual = calcMetaAdsTotal(currentMonthStart, currentMonthEnd);
+  const despesasMes = despesasManuaisMes + metaAdsMesAtual.total;
   const lucroLiquido = receitaMes - despesasMes;
   const margem = receitaMes > 0 ? (lucroLiquido / receitaMes) * 100 : 0;
 
@@ -75,7 +92,9 @@ export default function Pagamentos() {
   const dreReceitaTotal = dreReceita.reduce((s, p) => s + Number(p.valor_pago), 0);
   const dreReceitaAds = dreReceita.filter(p => p.pedidos?.origem_cliente === "meta_ads").reduce((s, p) => s + Number(p.valor_pago), 0);
   const dreReceitaOrganico = dreReceitaTotal - dreReceitaAds;
-  const dreLucro = dreReceitaTotal - despesasMes;
+  const dreMetaAds = calcMetaAdsTotal(dreStart, dreEnd);
+  const dreDespesas = despesasManuaisMes + dreMetaAds.total;
+  const dreLucro = dreReceitaTotal - dreDespesas;
   const dreMargem = dreReceitaTotal > 0 ? (dreLucro / dreReceitaTotal) * 100 : 0;
 
   const filtered = pagamentos.filter(p => statusFilter === "todos" || p.status === statusFilter);

@@ -5,10 +5,131 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Info } from "lucide-react";
+import { Download, Info, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { generatePixPayload } from "@/lib/pix";
 import WatermarkEditor, { type WatermarkLayer } from "@/components/WatermarkEditor";
+import * as XLSX from "xlsx";
+import { format } from "date-fns";
+
+type SheetSpec = { name: string; rows: Record<string, any>[] };
+
+function downloadXlsx(sheets: SheetSpec[], filename: string) {
+  const wb = XLSX.utils.book_new();
+  for (const s of sheets) {
+    const ws = XLSX.utils.json_to_sheet(s.rows.length ? s.rows : [{}]);
+    XLSX.utils.book_append_sheet(wb, ws, s.name.slice(0, 31));
+  }
+  XLSX.writeFile(wb, filename);
+}
+
+function fmtDate(v: any) {
+  if (!v) return "";
+  try { return format(new Date(v), "dd/MM/yyyy"); } catch { return ""; }
+}
+function fmtMonthYear(v: any) {
+  if (!v) return "";
+  try { return format(new Date(v), "MM/yyyy"); } catch { return ""; }
+}
+function backupFilename(suffix?: string) {
+  const d = format(new Date(), "dd-MM-yyyy");
+  return `FotoPronta_Backup${suffix ? "_" + suffix : ""}_${d}.xlsx`;
+}
+
+async function fetchClientesSheet(): Promise<SheetSpec> {
+  const { data: clientes, error } = await supabase
+    .from("clientes")
+    .select("id, nome, whatsapp, email, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  const { data: galerias } = await supabase.from("galerias").select("cliente_id");
+  const counts = new Map<string, number>();
+  (galerias || []).forEach((g: any) => {
+    if (g.cliente_id) counts.set(g.cliente_id, (counts.get(g.cliente_id) || 0) + 1);
+  });
+  return {
+    name: "Clientes",
+    rows: (clientes || []).map((c: any) => ({
+      Nome: c.nome,
+      WhatsApp: c.whatsapp || "",
+      Email: c.email || "",
+      Galerias: counts.get(c.id) || 0,
+      "Data de cadastro": fmtDate(c.created_at),
+    })),
+  };
+}
+
+async function fetchGaleriasSheet(): Promise<SheetSpec> {
+  const { data, error } = await supabase
+    .from("galerias")
+    .select("titulo, status, valor_total, created_at, clientes(nome)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return {
+    name: "Galerias",
+    rows: (data || []).map((g: any) => ({
+      Título: g.titulo,
+      Cliente: g.clientes?.nome || "",
+      Status: g.status,
+      Valor: Number(g.valor_total) || 0,
+      "Data de criação": fmtDate(g.created_at),
+    })),
+  };
+}
+
+async function fetchPedidosSheet(): Promise<SheetSpec> {
+  const { data, error } = await supabase
+    .from("pedidos")
+    .select("servico, data_entrega, status, origem_cliente, created_at, clientes(nome)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return {
+    name: "Pedidos",
+    rows: (data || []).map((p: any) => ({
+      Cliente: p.clientes?.nome || "",
+      Serviço: p.servico,
+      Entrega: fmtDate(p.data_entrega),
+      Status: p.status,
+      Origem: p.origem_cliente || "",
+      "Data": fmtDate(p.created_at),
+    })),
+  };
+}
+
+async function fetchFinanceiroSheet(): Promise<SheetSpec> {
+  const { data, error } = await supabase
+    .from("pagamentos")
+    .select("valor_total, valor_pago, status, created_at, clientes(nome)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return {
+    name: "Financeiro",
+    rows: (data || []).map((p: any) => ({
+      Cliente: p.clientes?.nome || "",
+      "Valor Total": Number(p.valor_total) || 0,
+      "Valor Pago": Number(p.valor_pago) || 0,
+      Status: p.status,
+      Data: fmtDate(p.created_at),
+    })),
+  };
+}
+
+async function fetchDespesasSheet(): Promise<SheetSpec> {
+  const { data, error } = await supabase
+    .from("despesas")
+    .select("nome, valor, categoria, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return {
+    name: "Despesas",
+    rows: (data || []).map((d: any) => ({
+      Nome: d.nome,
+      Valor: Number(d.valor) || 0,
+      Tipo: d.categoria,
+      "Mês/Ano": fmtMonthYear(d.created_at),
+    })),
+  };
+}
 
 function detectPixType(key: string): string {
   if (!key) return "";
@@ -57,6 +178,43 @@ export default function Configuracoes() {
   const [nomeRecebedor, setNomeRecebedor] = useState("");
   const [cidade, setCidade] = useState("");
   const [camadas, setCamadas] = useState<WatermarkLayer[]>([]);
+  const [exportingAll, setExportingAll] = useState(false);
+  const [exportingClientes, setExportingClientes] = useState(false);
+  const [exportingPedidos, setExportingPedidos] = useState(false);
+  const [exportingFinanceiro, setExportingFinanceiro] = useState(false);
+
+  const runExport = async (
+    setLoading: (v: boolean) => void,
+    build: () => Promise<{ sheets: SheetSpec[]; filename: string }>,
+  ) => {
+    setLoading(true);
+    try {
+      const { sheets, filename } = await build();
+      downloadXlsx(sheets, filename);
+      toast.success("Backup gerado com sucesso!");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao gerar backup");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportAll = () => runExport(setExportingAll, async () => {
+    const [clientes, galerias, pedidos, financeiro, despesas] = await Promise.all([
+      fetchClientesSheet(), fetchGaleriasSheet(), fetchPedidosSheet(),
+      fetchFinanceiroSheet(), fetchDespesasSheet(),
+    ]);
+    return { sheets: [clientes, galerias, pedidos, financeiro, despesas], filename: backupFilename() };
+  });
+  const exportClientes = () => runExport(setExportingClientes, async () => ({
+    sheets: [await fetchClientesSheet()], filename: backupFilename("Clientes"),
+  }));
+  const exportPedidos = () => runExport(setExportingPedidos, async () => ({
+    sheets: [await fetchPedidosSheet()], filename: backupFilename("Pedidos"),
+  }));
+  const exportFinanceiro = () => runExport(setExportingFinanceiro, async () => ({
+    sheets: [await fetchFinanceiroSheet()], filename: backupFilename("Financeiro"),
+  }));
 
   useEffect(() => {
     loadProfile();
@@ -115,6 +273,7 @@ export default function Configuracoes() {
           <TabsTrigger value="perfil">Perfil</TabsTrigger>
           <TabsTrigger value="pix">PIX & QR Code</TabsTrigger>
           <TabsTrigger value="marca">Marca d'água</TabsTrigger>
+          <TabsTrigger value="backup">Backup & Exportação</TabsTrigger>
         </TabsList>
 
         <TabsContent value="perfil">
@@ -209,6 +368,49 @@ export default function Configuracoes() {
                   As configurações são aplicadas automaticamente no upload das fotos. Fotos já enviadas não são alteradas.
                 </p>
               </div>
+        </TabsContent>
+
+        <TabsContent value="backup">
+          <Card className="border-border bg-card max-w-2xl">
+            <CardContent className="p-6 space-y-6">
+              <div>
+                <h3 className="font-display text-lg font-semibold">Backup completo</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Gera um arquivo Excel (.xlsx) com todas as tabelas do sistema: clientes, galerias, pedidos, financeiro e despesas.
+                </p>
+              </div>
+              <Button onClick={exportAll} disabled={exportingAll} size="lg" className="w-full sm:w-auto">
+                {exportingAll ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                {exportingAll ? "Gerando..." : "⬇️ Exportar tudo em Excel"}
+              </Button>
+
+              <div className="border-t border-border pt-6">
+                <h3 className="font-display text-lg font-semibold mb-1">Exportações individuais</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Baixe apenas a tabela que você precisa.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Button variant="outline" onClick={exportClientes} disabled={exportingClientes}>
+                    {exportingClientes ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                    {exportingClientes ? "Gerando..." : "⬇️ Exportar só Clientes"}
+                  </Button>
+                  <Button variant="outline" onClick={exportPedidos} disabled={exportingPedidos}>
+                    {exportingPedidos ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                    {exportingPedidos ? "Gerando..." : "⬇️ Exportar só Pedidos"}
+                  </Button>
+                  <Button variant="outline" onClick={exportFinanceiro} disabled={exportingFinanceiro}>
+                    {exportingFinanceiro ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                    {exportingFinanceiro ? "Gerando..." : "⬇️ Exportar só Financeiro"}
+                  </Button>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground flex items-start gap-1 pt-2 border-t border-border">
+                <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                Os arquivos são gerados no seu navegador e baixados automaticamente. Nome do arquivo: FotoPronta_Backup_DD-MM-AAAA.xlsx
+              </p>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

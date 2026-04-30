@@ -254,7 +254,10 @@ export default function Pagamentos() {
             </TableHeader>
             <TableBody>
               <TableRow><TableCell>Receita Bruta</TableCell><TableCell className="text-right font-medium">{formatCurrency(dreReceitaTotal)}</TableCell></TableRow>
-              <TableRow><TableCell>Despesas do Mês</TableCell><TableCell className="text-right font-medium text-destructive">− {formatCurrency(despesasMes)}</TableCell></TableRow>
+              <TableRow><TableCell>Despesas do Mês</TableCell><TableCell className="text-right font-medium text-destructive">− {formatCurrency(dreDespesas)}</TableCell></TableRow>
+              {dreMetaAds.total > 0 && (
+                <TableRow><TableCell className="pl-6 text-xs text-muted-foreground">↳ inclui 📢 Meta Ads (auto)</TableCell><TableCell className="text-right text-xs text-muted-foreground">{formatCurrency(dreMetaAds.total)}</TableCell></TableRow>
+              )}
               <TableRow><TableCell className="font-bold">Lucro Líquido</TableCell><TableCell className={`text-right font-bold ${dreLucro >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(dreLucro)}</TableCell></TableRow>
               <TableRow><TableCell className="font-bold">Margem de Lucro</TableCell><TableCell className={`text-right font-bold ${dreMargem >= 0 ? "text-success" : "text-destructive"}`}>{dreMargem.toFixed(1)}%</TableCell></TableRow>
             </TableBody>

@@ -25,6 +25,8 @@ const formatCurrency = (v: number) => `R$ ${Number(v || 0).toFixed(2).replace(".
 export default function Pagamentos() {
   const [pagamentos, setPagamentos] = useState<any[]>([]);
   const [despesas, setDespesas] = useState<any[]>([]);
+  const [metaInvestimentos, setMetaInvestimentos] = useState<any[]>([]);
+  const [taxaMetaAds, setTaxaMetaAds] = useState(14);
   const [statusFilter, setStatusFilter] = useState("todos");
 
   // DRE filter
@@ -41,12 +43,25 @@ export default function Pagamentos() {
   }, []);
 
   const loadAll = async () => {
-    const [pg, dp] = await Promise.all([
+    const [pg, dp, mi, pf] = await Promise.all([
       supabase.from("pagamentos").select("*, clientes(nome), pedidos(servico, origem_cliente)").order("created_at", { ascending: false }),
       supabase.from("despesas").select("*").order("created_at", { ascending: false }),
+      supabase.from("meta_ads_investimentos").select("*"),
+      supabase.from("profiles").select("meta_ads_taxa_imposto").limit(1).single(),
     ]);
     setPagamentos(pg.data || []);
     setDespesas(dp.data || []);
+    setMetaInvestimentos(mi.data || []);
+    if (pf.data) setTaxaMetaAds(Number(pf.data.meta_ads_taxa_imposto ?? 14));
+  };
+
+  // Helper: total Meta Ads (investido + imposto) num intervalo
+  const calcMetaAdsTotal = (start: Date, end: Date) => {
+    const investido = metaInvestimentos
+      .filter(i => { const d = new Date(i.data + "T00:00:00"); return d >= start && d <= end; })
+      .reduce((s, i) => s + Number(i.valor_investido), 0);
+    const imposto = investido * (taxaMetaAds / 100);
+    return { investido, imposto, total: investido + imposto };
   };
 
   // Período corrente (mês atual) para os cards de topo
@@ -60,7 +75,9 @@ export default function Pagamentos() {
     })
     .reduce((s, p) => s + Number(p.valor_pago), 0);
 
-  const despesasMes = despesas.reduce((s, d) => s + Number(d.valor), 0);
+  const despesasManuaisMes = despesas.reduce((s, d) => s + Number(d.valor), 0);
+  const metaAdsMesAtual = calcMetaAdsTotal(currentMonthStart, currentMonthEnd);
+  const despesasMes = despesasManuaisMes + metaAdsMesAtual.total;
   const lucroLiquido = receitaMes - despesasMes;
   const margem = receitaMes > 0 ? (lucroLiquido / receitaMes) * 100 : 0;
 
@@ -75,7 +92,9 @@ export default function Pagamentos() {
   const dreReceitaTotal = dreReceita.reduce((s, p) => s + Number(p.valor_pago), 0);
   const dreReceitaAds = dreReceita.filter(p => p.pedidos?.origem_cliente === "meta_ads").reduce((s, p) => s + Number(p.valor_pago), 0);
   const dreReceitaOrganico = dreReceitaTotal - dreReceitaAds;
-  const dreLucro = dreReceitaTotal - despesasMes;
+  const dreMetaAds = calcMetaAdsTotal(dreStart, dreEnd);
+  const dreDespesas = despesasManuaisMes + dreMetaAds.total;
+  const dreLucro = dreReceitaTotal - dreDespesas;
   const dreMargem = dreReceitaTotal > 0 ? (dreLucro / dreReceitaTotal) * 100 : 0;
 
   const filtered = pagamentos.filter(p => statusFilter === "todos" || p.status === statusFilter);
@@ -159,8 +178,26 @@ export default function Pagamentos() {
           </Button>
         </CardHeader>
         <CardContent>
-          {despesas.length > 0 ? (
+          {(despesas.length > 0 || metaAdsMesAtual.total > 0) ? (
             <div className="space-y-2">
+              {metaAdsMesAtual.total > 0 && (
+                <div className="flex items-center gap-3 p-3 rounded-md border border-border bg-background/50">
+                  <div className="flex-1">
+                    <p className="font-medium">📢 Meta Ads</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="text-xs">Marketing</Badge>
+                      <Badge variant="secondary" className="text-xs" title="Calculado a partir dos lançamentos em Meta Ads">Automático</Badge>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">R$</span>
+                    <span className="w-24 h-8 inline-flex items-center justify-end px-2 text-sm font-medium">
+                      {Number(metaAdsMesAtual.total).toFixed(2).replace(".", ",")}
+                    </span>
+                  </div>
+                  <div className="w-9" />
+                </div>
+              )}
               {despesas.map(d => (
                 <div key={d.id} className="flex items-center gap-3 p-3 rounded-md border border-border bg-background/50">
                   <div className="flex-1">
@@ -217,7 +254,10 @@ export default function Pagamentos() {
             </TableHeader>
             <TableBody>
               <TableRow><TableCell>Receita Bruta</TableCell><TableCell className="text-right font-medium">{formatCurrency(dreReceitaTotal)}</TableCell></TableRow>
-              <TableRow><TableCell>Despesas do Mês</TableCell><TableCell className="text-right font-medium text-destructive">− {formatCurrency(despesasMes)}</TableCell></TableRow>
+              <TableRow><TableCell>Despesas do Mês</TableCell><TableCell className="text-right font-medium text-destructive">− {formatCurrency(dreDespesas)}</TableCell></TableRow>
+              {dreMetaAds.total > 0 && (
+                <TableRow><TableCell className="pl-6 text-xs text-muted-foreground">↳ inclui 📢 Meta Ads (auto)</TableCell><TableCell className="text-right text-xs text-muted-foreground">{formatCurrency(dreMetaAds.total)}</TableCell></TableRow>
+              )}
               <TableRow><TableCell className="font-bold">Lucro Líquido</TableCell><TableCell className={`text-right font-bold ${dreLucro >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(dreLucro)}</TableCell></TableRow>
               <TableRow><TableCell className="font-bold">Margem de Lucro</TableCell><TableCell className={`text-right font-bold ${dreMargem >= 0 ? "text-success" : "text-destructive"}`}>{dreMargem.toFixed(1)}%</TableCell></TableRow>
             </TableBody>

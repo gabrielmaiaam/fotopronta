@@ -5,10 +5,131 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Info } from "lucide-react";
+import { Download, Info, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { generatePixPayload } from "@/lib/pix";
 import WatermarkEditor, { type WatermarkLayer } from "@/components/WatermarkEditor";
+import * as XLSX from "xlsx";
+import { format } from "date-fns";
+
+type SheetSpec = { name: string; rows: Record<string, any>[] };
+
+function downloadXlsx(sheets: SheetSpec[], filename: string) {
+  const wb = XLSX.utils.book_new();
+  for (const s of sheets) {
+    const ws = XLSX.utils.json_to_sheet(s.rows.length ? s.rows : [{}]);
+    XLSX.utils.book_append_sheet(wb, ws, s.name.slice(0, 31));
+  }
+  XLSX.writeFile(wb, filename);
+}
+
+function fmtDate(v: any) {
+  if (!v) return "";
+  try { return format(new Date(v), "dd/MM/yyyy"); } catch { return ""; }
+}
+function fmtMonthYear(v: any) {
+  if (!v) return "";
+  try { return format(new Date(v), "MM/yyyy"); } catch { return ""; }
+}
+function backupFilename(suffix?: string) {
+  const d = format(new Date(), "dd-MM-yyyy");
+  return `FotoPronta_Backup${suffix ? "_" + suffix : ""}_${d}.xlsx`;
+}
+
+async function fetchClientesSheet(): Promise<SheetSpec> {
+  const { data: clientes, error } = await supabase
+    .from("clientes")
+    .select("id, nome, whatsapp, email, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  const { data: galerias } = await supabase.from("galerias").select("cliente_id");
+  const counts = new Map<string, number>();
+  (galerias || []).forEach((g: any) => {
+    if (g.cliente_id) counts.set(g.cliente_id, (counts.get(g.cliente_id) || 0) + 1);
+  });
+  return {
+    name: "Clientes",
+    rows: (clientes || []).map((c: any) => ({
+      Nome: c.nome,
+      WhatsApp: c.whatsapp || "",
+      Email: c.email || "",
+      Galerias: counts.get(c.id) || 0,
+      "Data de cadastro": fmtDate(c.created_at),
+    })),
+  };
+}
+
+async function fetchGaleriasSheet(): Promise<SheetSpec> {
+  const { data, error } = await supabase
+    .from("galerias")
+    .select("titulo, status, valor_total, created_at, clientes(nome)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return {
+    name: "Galerias",
+    rows: (data || []).map((g: any) => ({
+      Título: g.titulo,
+      Cliente: g.clientes?.nome || "",
+      Status: g.status,
+      Valor: Number(g.valor_total) || 0,
+      "Data de criação": fmtDate(g.created_at),
+    })),
+  };
+}
+
+async function fetchPedidosSheet(): Promise<SheetSpec> {
+  const { data, error } = await supabase
+    .from("pedidos")
+    .select("servico, data_entrega, status, origem_cliente, created_at, clientes(nome)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return {
+    name: "Pedidos",
+    rows: (data || []).map((p: any) => ({
+      Cliente: p.clientes?.nome || "",
+      Serviço: p.servico,
+      Entrega: fmtDate(p.data_entrega),
+      Status: p.status,
+      Origem: p.origem_cliente || "",
+      "Data": fmtDate(p.created_at),
+    })),
+  };
+}
+
+async function fetchFinanceiroSheet(): Promise<SheetSpec> {
+  const { data, error } = await supabase
+    .from("pagamentos")
+    .select("valor_total, valor_pago, status, created_at, clientes(nome)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return {
+    name: "Financeiro",
+    rows: (data || []).map((p: any) => ({
+      Cliente: p.clientes?.nome || "",
+      "Valor Total": Number(p.valor_total) || 0,
+      "Valor Pago": Number(p.valor_pago) || 0,
+      Status: p.status,
+      Data: fmtDate(p.created_at),
+    })),
+  };
+}
+
+async function fetchDespesasSheet(): Promise<SheetSpec> {
+  const { data, error } = await supabase
+    .from("despesas")
+    .select("nome, valor, categoria, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return {
+    name: "Despesas",
+    rows: (data || []).map((d: any) => ({
+      Nome: d.nome,
+      Valor: Number(d.valor) || 0,
+      Tipo: d.categoria,
+      "Mês/Ano": fmtMonthYear(d.created_at),
+    })),
+  };
+}
 
 function detectPixType(key: string): string {
   if (!key) return "";

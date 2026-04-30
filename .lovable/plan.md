@@ -1,38 +1,63 @@
-## Integrar Meta Ads como despesa automática no Financeiro
+## Backup & Exportação em Excel
 
-### Abordagem
-A linha "📢 Meta Ads" no Financeiro é **calculada em runtime** a partir da tabela `meta_ads_investimentos` — não é gravada como despesa real. Isso garante:
-- Fonte única da verdade (sem duplicação)
-- Atualização automática quando muda em Meta Ads
-- Impossível editar/excluir do Financeiro (não existe registro real)
+### Objetivo
+Adicionar nova aba "Backup & Exportação" em Configurações com botões para exportar dados do sistema em arquivos `.xlsx` gerados no navegador via SheetJS.
 
-### Mudanças em `src/pages/Pagamentos.tsx`
+### Dependência
+- Adicionar `xlsx` (SheetJS) ao `package.json`.
 
-1. Carregar também `meta_ads_investimentos` e `profiles.meta_ads_taxa_imposto` no `loadAll()`.
+### Mudanças em `src/pages/Configuracoes.tsx`
+1. Adicionar nova `<TabsTrigger value="backup">Backup & Exportação</TabsTrigger>` e respectivo `<TabsContent>`.
+2. Criar componente/seção interna com 4 botões:
+   - **⬇️ Exportar tudo em Excel** (principal, destaque)
+   - **⬇️ Exportar só Clientes**
+   - **⬇️ Exportar só Pedidos**
+   - **⬇️ Exportar só Financeiro**
+3. Cada botão tem estado de loading individual (ícone `Loader2` girando + texto "Gerando..."). Ao concluir: `toast.success("Backup gerado com sucesso!")`. Em erro: `toast.error(...)`.
 
-2. Para o mês corrente (cards de topo) e para o mês selecionado no DRE, calcular:
-   ```
-   metaInvestidoMes = soma valor_investido no intervalo
-   metaImpostoMes   = metaInvestidoMes * (taxa / 100)
-   metaTotalMes     = metaInvestidoMes + metaImpostoMes
-   ```
+### Lógica de exportação
+- Função utilitária local `exportToXlsx(sheets: { name: string; rows: any[] }[], filename: string)` que:
+  - Cria `XLSX.utils.book_new()`.
+  - Para cada aba: `XLSX.utils.json_to_sheet(rows)` → `XLSX.utils.book_append_sheet`.
+  - `XLSX.writeFile(wb, filename)` (dispara download no navegador).
+- Nome do arquivo: `FotoPronta_Backup_DD-MM-AAAA.xlsx` (e variantes `_Clientes`, `_Pedidos`, `_Financeiro`).
 
-3. Renderizar na lista de Despesas do Mês uma linha virtual no topo (apenas se `metaTotalMes > 0`):
-   - Nome: "📢 Meta Ads"
-   - Badge: "Marketing"
-   - Valor em texto (não editável)
-   - Sem botão de excluir
-   - Pequena tag "Automático" + tooltip "Calculado a partir dos lançamentos em Meta Ads"
+### Queries Supabase e mapeamento de colunas
+Todas as consultas usam o `supabase` client já existente (sem RLS — retorna tudo).
 
-4. Atualizar todos os cálculos para somar `metaTotalMes`:
-   - Card "Despesas do Mês"
-   - Card "Lucro Líquido" e "Margem"
-   - Total no rodapé da seção de despesas
-   - Linha "Despesas do Mês" do DRE Simplificado (usando `metaTotalMes` do mês filtrado, não do mês corrente)
+**Aba "Clientes"** — `clientes` + contagem de galerias:
+```
+nome, whatsapp, email, galerias (count), created_at → "Data de cadastro" (dd/MM/yyyy)
+```
+Buscar `clientes` e fazer `select('*, galerias(count)')` ou contar via segunda query agrupada.
 
-### Sem mudanças em
-- Schema do banco (sem migration)
-- `src/pages/MetaAds.tsx` (apenas opcionalmente uma nota informativa)
+**Aba "Galerias"** — `galerias` + join cliente:
+```
+titulo, cliente (clientes.nome), status, valor_total, created_at
+```
+
+**Aba "Pedidos"** — `pedidos` + join cliente:
+```
+cliente (clientes.nome), servico, data_entrega, status, origem_cliente, created_at
+```
+
+**Aba "Financeiro"** — `pagamentos` + join cliente:
+```
+cliente (clientes.nome), valor_total, valor_pago, status, created_at
+```
+
+**Aba "Despesas"** — `despesas`:
+```
+nome, valor, categoria (Tipo), created_at formatado como "MM/yyyy"
+```
+
+### Formatação
+- Datas formatadas com `date-fns` (`format(new Date(x), 'dd/MM/yyyy')`) — já presente no projeto.
+- Valores numéricos mantidos como `number` para Excel reconhecer.
+- Cabeçalhos em português (definidos pelas chaves do objeto passado a `json_to_sheet`).
 
 ### Arquivos
-- `src/pages/Pagamentos.tsx`
+- `package.json` — adicionar `xlsx`.
+- `src/pages/Configuracoes.tsx` — nova aba + handlers de exportação.
+
+Sem alteração de schema, sem migration.

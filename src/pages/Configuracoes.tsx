@@ -178,6 +178,43 @@ export default function Configuracoes() {
   const [nomeRecebedor, setNomeRecebedor] = useState("");
   const [cidade, setCidade] = useState("");
   const [camadas, setCamadas] = useState<WatermarkLayer[]>([]);
+  const [exportingAll, setExportingAll] = useState(false);
+  const [exportingClientes, setExportingClientes] = useState(false);
+  const [exportingPedidos, setExportingPedidos] = useState(false);
+  const [exportingFinanceiro, setExportingFinanceiro] = useState(false);
+
+  const runExport = async (
+    setLoading: (v: boolean) => void,
+    build: () => Promise<{ sheets: SheetSpec[]; filename: string }>,
+  ) => {
+    setLoading(true);
+    try {
+      const { sheets, filename } = await build();
+      downloadXlsx(sheets, filename);
+      toast.success("Backup gerado com sucesso!");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao gerar backup");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportAll = () => runExport(setExportingAll, async () => {
+    const [clientes, galerias, pedidos, financeiro, despesas] = await Promise.all([
+      fetchClientesSheet(), fetchGaleriasSheet(), fetchPedidosSheet(),
+      fetchFinanceiroSheet(), fetchDespesasSheet(),
+    ]);
+    return { sheets: [clientes, galerias, pedidos, financeiro, despesas], filename: backupFilename() };
+  });
+  const exportClientes = () => runExport(setExportingClientes, async () => ({
+    sheets: [await fetchClientesSheet()], filename: backupFilename("Clientes"),
+  }));
+  const exportPedidos = () => runExport(setExportingPedidos, async () => ({
+    sheets: [await fetchPedidosSheet()], filename: backupFilename("Pedidos"),
+  }));
+  const exportFinanceiro = () => runExport(setExportingFinanceiro, async () => ({
+    sheets: [await fetchFinanceiroSheet()], filename: backupFilename("Financeiro"),
+  }));
 
   useEffect(() => {
     loadProfile();

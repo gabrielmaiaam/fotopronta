@@ -11,6 +11,7 @@ import { Plus, Search, Image, Pencil, Trash2, Tag, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const CORES = [
   "#5B7FFF", "#8B5CF6", "#F97316", "#22C55E", "#EF4444",
@@ -21,6 +22,7 @@ type Etiqueta = { id: string; nome: string; cor: string };
 
 export default function Clientes() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [clientes, setClientes] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -69,8 +71,9 @@ export default function Clientes() {
 
   const criarEtiqueta = async () => {
     if (!novaEtiqueta.trim()) return;
+    if (!user) { toast.error("Sessão expirada"); return; }
     const { error } = await supabase.from("etiquetas").insert({
-      user_id: "00000000-0000-0000-0000-000000000000",
+      user_id: user.id,
       nome: novaEtiqueta.trim(),
       cor: corSelecionada,
     });
@@ -121,9 +124,10 @@ export default function Clientes() {
         .eq("id", editing.id);
       if (error) { toast.error(error.message); return; }
     } else {
+      if (!user) { toast.error("Sessão expirada"); return; }
       const { data, error } = await supabase
         .from("clientes")
-        .insert({ user_id: "00000000-0000-0000-0000-000000000000", nome: form.nome, whatsapp: form.whatsapp || null, email: form.email || null })
+        .insert({ user_id: user.id, nome: form.nome, whatsapp: form.whatsapp || null, email: form.email || null })
         .select("id")
         .single();
       if (error) { toast.error(error.message); return; }

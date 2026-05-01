@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { DollarSign, TrendingDown, TrendingUp, Percent, CreditCard, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -23,6 +24,7 @@ const CATEGORIAS = [
 const formatCurrency = (v: number) => `R$ ${Number(v || 0).toFixed(2).replace(".", ",")}`;
 
 export default function Pagamentos() {
+  const { user } = useAuth();
   const [pagamentos, setPagamentos] = useState<any[]>([]);
   const [despesas, setDespesas] = useState<any[]>([]);
   const [metaInvestimentos, setMetaInvestimentos] = useState<any[]>([]);
@@ -113,8 +115,9 @@ export default function Pagamentos() {
       toast.error("Preencha nome e valor");
       return;
     }
+    if (!user) { toast.error("Sessão expirada"); return; }
     const { error } = await supabase.from("despesas").insert({
-      user_id: "00000000-0000-0000-0000-000000000000",
+      user_id: user.id,
       nome: despesaForm.nome,
       valor: Number(despesaForm.valor.replace(",", ".")),
       categoria: despesaForm.categoria,

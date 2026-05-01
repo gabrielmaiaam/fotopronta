@@ -1,63 +1,73 @@
-## Backup & Exportação em Excel
+## Por que o erro acontece
 
-### Objetivo
-Adicionar nova aba "Backup & Exportação" em Configurações com botões para exportar dados do sistema em arquivos `.xlsx` gerados no navegador via SheetJS.
+A tabela `clientes` tem uma chave estrangeira `user_id → auth.users(id)`, mas o app atual está sem login real (o `AuthContext` é um stub) e todas as inserções usam um UUID falso fixo (`00000000-0000-0000-0000-000000000000`). Como esse usuário não existe em `auth.users`, o banco rejeita o insert. O mesmo problema vai aparecer em Pedidos, Galerias, Pagamentos e Meta Ads.
 
-### Dependência
-- Adicionar `xlsx` (SheetJS) ao `package.json`.
+A correção definitiva é ativar o login (que já estava previsto no projeto) e passar o ID do usuário real em todas as gravações.
 
-### Mudanças em `src/pages/Configuracoes.tsx`
-1. Adicionar nova `<TabsTrigger value="backup">Backup & Exportação</TabsTrigger>` e respectivo `<TabsContent>`.
-2. Criar componente/seção interna com 4 botões:
-   - **⬇️ Exportar tudo em Excel** (principal, destaque)
-   - **⬇️ Exportar só Clientes**
-   - **⬇️ Exportar só Pedidos**
-   - **⬇️ Exportar só Financeiro**
-3. Cada botão tem estado de loading individual (ícone `Loader2` girando + texto "Gerando..."). Ao concluir: `toast.success("Backup gerado com sucesso!")`. Em erro: `toast.error(...)`.
+## O que vamos fazer
 
-### Lógica de exportação
-- Função utilitária local `exportToXlsx(sheets: { name: string; rows: any[] }[], filename: string)` que:
-  - Cria `XLSX.utils.book_new()`.
-  - Para cada aba: `XLSX.utils.json_to_sheet(rows)` → `XLSX.utils.book_append_sheet`.
-  - `XLSX.writeFile(wb, filename)` (dispara download no navegador).
-- Nome do arquivo: `FotoPronta_Backup_DD-MM-AAAA.xlsx` (e variantes `_Clientes`, `_Pedidos`, `_Financeiro`).
+### 1. Autenticação de verdade
 
-### Queries Supabase e mapeamento de colunas
-Todas as consultas usam o `supabase` client já existente (sem RLS — retorna tudo).
+- Criar página `/auth` com duas abas: **Entrar** e **Criar conta** (email + senha) e botão **Entrar com Google**.
+- Reescrever `src/contexts/AuthContext.tsx` para usar Supabase Auth de verdade: registrar listener `onAuthStateChange` antes de `getSession()`, expor `user`, `session`, `loading` e `signOut`.
+- Envolver as rotas privadas com `ProtectedRoute` (já existe o arquivo) — se não houver sessão, redireciona para `/auth`. A rota pública `/galeria/:link` continua aberta.
+- Adicionar item “Sair” no `AppSidebar` mostrando o email do usuário logado.
+- Login com Google usa o módulo gerenciado da Lovable Cloud (sem precisar de chaves).
 
-**Aba "Clientes"** — `clientes` + contagem de galerias:
+### 2. Trocar o user_id fake pelo real
+
+Em todas as páginas onde hoje aparece `user_id: "00000000-..."`, passar `user.id` da sessão:
+
+- `src/pages/Clientes.tsx` (insert de cliente e de etiqueta)
+- `src/pages/Pedidos.tsx`
+- `src/pages/Galerias.tsx`
+- `src/pages/Pagamentos.tsx`
+- `src/pages/MetaAds.tsx`
+- Qualquer outro lugar que faça insert/update com user_id.
+
+### 3. Ajustar RLS nas tabelas que estão sem proteção
+
+Hoje `despesas` e `meta_ads_investimentos` estão sem políticas RLS — isso faz com que mesmo logado o usuário não consiga ler/escrever quando o RLS estiver ativo. Vamos:
+
+- Ativar RLS e criar política “Users manage own …” baseada em `auth.uid() = user_id` para `despesas` e `meta_ads_investimentos`.
+- Trocar o default da coluna `user_id` dessas duas tabelas (hoje é o UUID fake) para `NULL`, e marcar como `NOT NULL` (sem default), forçando o app a sempre passar o ID correto.
+
+### 4. Migrar os dados existentes para a sua conta
+
+Para não perder o que já está cadastrado, vamos criar uma função SQL `claim_legacy_data()` (SECURITY DEFINER) que, ao ser chamada pelo usuário logado, atualiza todas as linhas com `user_id = '00000000-...'` para o `auth.uid()` atual nas tabelas: `clientes`, `pedidos`, `galerias`, `pagamentos`, `despesas`, `meta_ads_investimentos`, `etiquetas`, `profiles`.
+
+No primeiro login bem-sucedido, o app chama essa função uma única vez (controlado por uma flag em `localStorage`) e mostra um toast “Dados migrados para sua conta”.
+
+### 5. Confirmação de email
+
+Por padrão o Supabase exige confirmação de email no signup. Para você não ficar travado testando, vamos **ativar auto-confirm** nas configurações de auth (signup já entra direto). Pode ser desligado depois nas configurações da Lovable Cloud.
+
+## Detalhes técnicos
+
+```text
+src/
+├── contexts/AuthContext.tsx        ← reescrito com Supabase Auth real
+├── components/ProtectedRoute.tsx   ← passa a checar session de verdade
+├── components/AppSidebar.tsx       ← mostra email + botão Sair
+├── pages/
+│   ├── Auth.tsx                    ← NOVO: login/cadastro/Google
+│   ├── Clientes.tsx                ← user.id no insert
+│   ├── Pedidos.tsx                 ← user.id no insert
+│   ├── Galerias.tsx                ← user.id no insert
+│   ├── Pagamentos.tsx              ← user.id no insert
+│   └── MetaAds.tsx                 ← user.id no insert
+└── App.tsx                         ← rota /auth pública + ProtectedRoute
 ```
-nome, whatsapp, email, galerias (count), created_at → "Data de cadastro" (dd/MM/yyyy)
-```
-Buscar `clientes` e fazer `select('*, galerias(count)')` ou contar via segunda query agrupada.
 
-**Aba "Galerias"** — `galerias` + join cliente:
-```
-titulo, cliente (clientes.nome), status, valor_total, created_at
-```
+Migração SQL (resumo):
+- `ALTER TABLE despesas ENABLE ROW LEVEL SECURITY` + política `auth.uid() = user_id`.
+- `ALTER TABLE meta_ads_investimentos ENABLE ROW LEVEL SECURITY` + política equivalente.
+- Remover o default `'00000000-...'` nessas duas tabelas.
+- Função `public.claim_legacy_data()` `SECURITY DEFINER` que faz `UPDATE ... SET user_id = auth.uid() WHERE user_id = '00000000-...'` em todas as tabelas listadas.
 
-**Aba "Pedidos"** — `pedidos` + join cliente:
-```
-cliente (clientes.nome), servico, data_entrega, status, origem_cliente, created_at
-```
+## Resultado esperado
 
-**Aba "Financeiro"** — `pagamentos` + join cliente:
-```
-cliente (clientes.nome), valor_total, valor_pago, status, created_at
-```
-
-**Aba "Despesas"** — `despesas`:
-```
-nome, valor, categoria (Tipo), created_at formatado como "MM/yyyy"
-```
-
-### Formatação
-- Datas formatadas com `date-fns` (`format(new Date(x), 'dd/MM/yyyy')`) — já presente no projeto.
-- Valores numéricos mantidos como `number` para Excel reconhecer.
-- Cabeçalhos em português (definidos pelas chaves do objeto passado a `json_to_sheet`).
-
-### Arquivos
-- `package.json` — adicionar `xlsx`.
-- `src/pages/Configuracoes.tsx` — nova aba + handlers de exportação.
-
-Sem alteração de schema, sem migration.
+- Você abre o app, é redirecionado para `/auth`, cria a conta (ou entra com Google).
+- No primeiro login, todos os clientes/pedidos/galerias/pagamentos/despesas/Meta Ads antigos passam a ser seus.
+- O cadastro de um novo cliente funciona normalmente (sem o erro de foreign key).
+- Cada usuário só enxerga e edita os próprios dados.

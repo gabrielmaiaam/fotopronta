@@ -9,12 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { StatusBadge } from "@/components/StatusBadge";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Plus, Calendar as CalIcon, List, Play, Pencil, Trash2, Link2, Clock, TrendingUp, CalendarDays, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { format, differenceInMinutes, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default function Pedidos() {
+  const { user } = useAuth();
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [view, setView] = useState<"list" | "calendar">("list");
@@ -61,8 +63,9 @@ export default function Pedidos() {
     const tempoEstimado = form.data_entrega
       ? Math.max(differenceInMinutes(new Date(form.data_entrega), new Date()), 1)
       : 120;
+    if (!user) { toast.error("Sessão expirada"); return; }
     const { error } = await supabase.from("pedidos").insert({
-      user_id: "00000000-0000-0000-0000-000000000000",
+      user_id: user.id,
       cliente_id: form.cliente_id,
       servico: form.servico,
       data_entrega: form.data_entrega ? new Date(form.data_entrega).toISOString() : null,

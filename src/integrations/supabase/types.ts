@@ -95,7 +95,7 @@ export type Database = {
           nome: string
           recorrente?: boolean
           updated_at?: string
-          user_id?: string
+          user_id: string
           valor?: number
         }
         Update: {
@@ -236,7 +236,7 @@ export type Database = {
           data: string
           id?: string
           taxa_imposto?: number
-          user_id?: string
+          user_id: string
           valor_investido?: number
         }
         Update: {
@@ -433,7 +433,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_legacy_data: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { TrendingDown, TrendingUp, DollarSign, Landmark, BarChart3, Zap, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
@@ -15,6 +16,7 @@ import { ptBR } from "date-fns/locale";
 const formatCurrency = (v: number) => `R$ ${Number(v || 0).toFixed(2).replace(".", ",")}`;
 
 export default function MetaAds() {
+  const { user } = useAuth();
   const [investimentos, setInvestimentos] = useState<any[]>([]);
   const [pagamentos, setPagamentos] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
@@ -64,8 +66,9 @@ export default function MetaAds() {
       toast.error("Preencha data e valor");
       return;
     }
+    if (!user) { toast.error("Sessão expirada"); return; }
     const { error } = await supabase.from("meta_ads_investimentos").insert({
-      user_id: "00000000-0000-0000-0000-000000000000",
+      user_id: user.id,
       data: form.data,
       valor_investido: Number(form.valor_investido.replace(",", ".")),
       taxa_imposto: taxa,

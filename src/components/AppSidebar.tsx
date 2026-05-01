@@ -1,8 +1,10 @@
-import { LayoutDashboard, Users, Image, Zap, Package, DollarSign, Megaphone, Settings, Camera } from "lucide-react";
+import { LayoutDashboard, Users, Image, Zap, Package, DollarSign, Megaphone, Settings, Camera, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
@@ -17,7 +19,7 @@ const menuItems = [
   { title: "Galerias", url: "/galerias", icon: Image },
   { title: "Prévia Rápida", url: "/previa-rapida", icon: Zap },
   { title: "Pedidos", url: "/pedidos", icon: Package },
-  { title: "Financeiro", url: "/financeiro ", icon: DollarSign },
+  { title: "Financeiro", url: "/financeiro", icon: DollarSign },
   { title: "Meta Ads", url: "/meta-ads", icon: Megaphone },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
@@ -25,6 +27,7 @@ const menuItems = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const { user, signOut } = useAuth();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar">
@@ -60,6 +63,22 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter className="border-t border-border p-2">
+        {!collapsed && user?.email && (
+          <div className="px-2 py-1 text-xs text-muted-foreground truncate" title={user.email}>
+            {user.email}
+          </div>
+        )}
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={() => signOut()} className="text-sidebar-foreground hover:bg-sidebar-accent/50">
+              <LogOut className="mr-2 h-4 w-4 shrink-0" />
+              {!collapsed && <span>Sair</span>}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }

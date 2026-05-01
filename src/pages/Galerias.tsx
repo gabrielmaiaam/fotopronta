@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Plus, Search, Eye, Upload, Trash2, Copy, X } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -15,6 +16,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function Galerias() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [galerias, setGalerias] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
@@ -64,8 +66,9 @@ export default function Galerias() {
     }
 
     const linkPublico = crypto.randomUUID().slice(0, 8);
+    if (!user) { toast.error("Sessão expirada"); return; }
     const { error } = await supabase.from("galerias").insert({
-      user_id: "00000000-0000-0000-0000-000000000000",
+      user_id: user.id,
       cliente_id: form.cliente_id,
       titulo: form.titulo,
       valor_total: parseFloat(form.valor_total) || 0,

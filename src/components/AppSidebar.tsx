@@ -14,14 +14,14 @@ import {
 } from "@/components/ui/sidebar";
 
 const menuItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Clientes", url: "/clientes", icon: Users },
-  { title: "Galerias", url: "/galerias", icon: Image },
-  { title: "Prévia Rápida", url: "/previa-rapida", icon: Zap },
-  { title: "Pedidos", url: "/pedidos", icon: Package },
-  { title: "Financeiro", url: "/financeiro", icon: DollarSign },
-  { title: "Meta Ads", url: "/meta-ads", icon: Megaphone },
-  { title: "Configurações", url: "/configuracoes", icon: Settings },
+{ title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+{ title: "Clientes", url: "/clientes", icon: Users },
+{ title: "Pedidos", url: "/pedidos", icon: Package },
+{ title: "Galerias", url: "/galerias", icon: Image },
+{ title: "Prévia Rápida", url: "/previa-rapida", icon: Zap },
+{ title: "Financeiro", url: "/financeiro", icon: DollarSign },
+{ title: "Meta Ads", url: "/meta-ads", icon: Megaphone },
+{ title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
 export function AppSidebar() {

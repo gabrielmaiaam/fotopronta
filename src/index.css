@@ -6,44 +6,57 @@
 
 @layer base {
   :root {
-    --background: 0 0% 4%;
-    --foreground: 40 20% 90%;
+    /* Dark blue theme — substitui dourado por azul moderno */
+    /* #0a0f1e */
+    --background: 224 49% 8%;
+    /* #94a3b8 — texto geral */
+    --foreground: 215 20% 65%;
 
-    --card: 0 0% 10%;
-    --card-foreground: 40 20% 90%;
+    /* #111827 */
+    --card: 222 39% 11%;
+    /* #f0f4ff — títulos / texto principal nos cards */
+    --card-foreground: 222 100% 97%;
 
-    --popover: 0 0% 8%;
-    --popover-foreground: 40 20% 90%;
+    --popover: 222 39% 11%;
+    --popover-foreground: 222 100% 97%;
 
-    --primary: 43 50% 54%;
-    --primary-foreground: 0 0% 5%;
+    /* #3b82f6 — cor primária (substitui dourado) */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 40 20% 90%;
+    /* #1a2d4a */
+    --secondary: 218 48% 20%;
+    --secondary-foreground: 222 100% 97%;
 
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 55%;
+    /* #1a2d4a */
+    --muted: 218 48% 20%;
+    /* #4a6080 — texto secundário */
+    --muted-foreground: 217 27% 40%;
 
-    --accent: 43 50% 54%;
-    --accent-foreground: 0 0% 5%;
+    /* hover / itens ativos */
+    --accent: 218 48% 20%;
+    --accent-foreground: 217 91% 60%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 16%;
-    --input: 0 0% 12%;
-    --ring: 43 50% 54%;
+    /* #1e2d45 */
+    --border: 217 39% 20%;
+    /* inputs #111827 */
+    --input: 222 39% 11%;
+    --ring: 217 91% 60%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 8%;
-    --sidebar-foreground: 40 20% 90%;
-    --sidebar-primary: 43 50% 54%;
-    --sidebar-primary-foreground: 0 0% 5%;
-    --sidebar-accent: 0 0% 14%;
-    --sidebar-accent-foreground: 40 20% 90%;
-    --sidebar-border: 0 0% 16%;
-    --sidebar-ring: 43 50% 54%;
+    /* #0d1526 */
+    --sidebar-background: 222 49% 10%;
+    --sidebar-foreground: 215 20% 65%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 218 48% 20%;
+    --sidebar-accent-foreground: 217 91% 60%;
+    --sidebar-border: 217 39% 20%;
+    --sidebar-ring: 217 91% 60%;
 
     --success: 142 70% 45%;
     --success-foreground: 0 0% 98%;
@@ -66,5 +79,6 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Playfair Display', serif;
+    color: hsl(var(--card-foreground));
   }
 }

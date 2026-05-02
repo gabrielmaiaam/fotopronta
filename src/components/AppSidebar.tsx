@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Image, Zap, Package, DollarSign, Megaphone, Settings, Camera, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Image, Zap, Package, DollarSign, Megaphone, Settings, Camera, LogOut, BarChart3 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -20,6 +20,7 @@ const menuItems = [
 { title: "Galerias", url: "/galerias", icon: Image },
 { title: "Prévia Rápida", url: "/previa-rapida", icon: Zap },
 { title: "Financeiro", url: "/financeiro", icon: DollarSign },
+{ title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 { title: "Meta Ads", url: "/meta-ads", icon: Megaphone },
 { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
@@ -35,7 +36,7 @@ export function AppSidebar() {
         <div className="p-4 flex items-center gap-2">
           <Camera className="h-6 w-6 text-primary shrink-0" />
           {!collapsed && (
-            <span className="text-lg font-display font-bold text-primary">
+            <span className="text-lg font-display font-bold text-card-foreground">
               Foto Pronta
             </span>
           )}

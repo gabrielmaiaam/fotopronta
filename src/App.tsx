@@ -13,6 +13,7 @@ import Galerias from "./pages/Galerias";
 import GaleriaDetail from "./pages/GaleriaDetail";
 import Pedidos from "./pages/Pedidos";
 import Pagamentos from "./pages/Pagamentos";
+import Relatorios from "./pages/Relatorios";
 import MetaAds from "./pages/MetaAds";
 import Configuracoes from "./pages/Configuracoes";
 import GaleriaPublica from "./pages/GaleriaPublica";
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/previa-rapida" element={<PreviaRapida />} />
               <Route path="/pedidos" element={<Pedidos />} />
               <Route path="/financeiro" element={<Pagamentos />} />
+              <Route path="/relatorios" element={<Relatorios />} />
               <Route path="/meta-ads" element={<MetaAds />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>

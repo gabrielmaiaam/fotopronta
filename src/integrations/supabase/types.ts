@@ -364,6 +364,9 @@ export type Database = {
           chave_pix: string | null
           cidade: string | null
           created_at: string
+          distribuicao_pro_labore: number
+          distribuicao_reinvest: number
+          distribuicao_reserva: number
           email: string | null
           id: string
           marca_dagua_camadas: Json
@@ -376,6 +379,7 @@ export type Database = {
           marca_dagua_tipo: string
           marca_dagua_url: string | null
           meta_ads_taxa_imposto: number
+          meta_faturamento_mensal: number
           nome: string
           nome_recebedor: string | null
           plano: string
@@ -386,6 +390,9 @@ export type Database = {
           chave_pix?: string | null
           cidade?: string | null
           created_at?: string
+          distribuicao_pro_labore?: number
+          distribuicao_reinvest?: number
+          distribuicao_reserva?: number
           email?: string | null
           id?: string
           marca_dagua_camadas?: Json
@@ -398,6 +405,7 @@ export type Database = {
           marca_dagua_tipo?: string
           marca_dagua_url?: string | null
           meta_ads_taxa_imposto?: number
+          meta_faturamento_mensal?: number
           nome?: string
           nome_recebedor?: string | null
           plano?: string
@@ -408,6 +416,9 @@ export type Database = {
           chave_pix?: string | null
           cidade?: string | null
           created_at?: string
+          distribuicao_pro_labore?: number
+          distribuicao_reinvest?: number
+          distribuicao_reserva?: number
           email?: string | null
           id?: string
           marca_dagua_camadas?: Json
@@ -420,11 +431,39 @@ export type Database = {
           marca_dagua_tipo?: string
           marca_dagua_url?: string | null
           meta_ads_taxa_imposto?: number
+          meta_faturamento_mensal?: number
           nome?: string
           nome_recebedor?: string | null
           plano?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      retiradas: {
+        Row: {
+          created_at: string
+          data: string
+          descricao: string | null
+          id: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          id?: string
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          id?: string
+          user_id?: string
+          valor?: number
         }
         Relationships: []
       }

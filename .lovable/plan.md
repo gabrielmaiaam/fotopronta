@@ -1,135 +1,80 @@
-## Parte 1 — Nova identidade visual (dark azul)
+## Plano: Módulo de Indicações
 
-Toda a paleta do app vem de tokens HSL em `src/index.css`. Trocando os tokens, a mudança propaga para todas as páginas e componentes (sidebar, botões, inputs, cards, sliders, foco, hovers). Não há cores douradas hardcoded fora dos tokens.
+Novo módulo de programa de indicações com link público de captura de leads, integrado ao sistema existente.
 
-Novos valores em `src/index.css` (mapeando para as cores pedidas):
+### 1. Banco de dados (migração)
 
-```text
---background        → #0a0f1e
---foreground        → #94a3b8  (texto geral)
---card              → #111827
---card-foreground   → #f0f4ff
---popover           → #111827
---border            → #1e2d45
---input             → #111827
---muted             → #1a2d4a
---muted-foreground  → #4a6080  (texto secundário)
---primary           → #3b82f6  (substitui dourado)
---primary-foreground→ #ffffff
---accent            → #1a2d4a  (hover/itens ativos)
---accent-foreground → #3b82f6
---ring              → #3b82f6
---sidebar-background→ #0d1526
---sidebar-accent    → #1a2d4a
---sidebar-primary   → #3b82f6
-```
+**Tabela `indicacoes`** (links gerados):
+- `id` uuid PK
+- `user_id` uuid (RLS)
+- `cliente_id` uuid (cliente que indica)
+- `codigo` text único (gerado automático, ~6 chars)
+- `recompensa_tipo` text ('percentual' | 'valor_fixo')
+- `recompensa_valor` numeric
+- `status` text ('aguardando' | 'convertido') default 'aguardando'
+- `created_at` timestamptz
 
-Ajustes adicionais:
-- Logo "Foto Pronta" em `AppSidebar.tsx`: texto branco (`text-[#f0f4ff]`), ícone mantém `text-primary` (azul).
-- Hover de botão primário usa `hover:bg-primary/90` — definir `--primary` já em #3b82f6 deixa o hover em ~#2563eb naturalmente (ou ajustar para `hover:bg-[#2563eb]` no `button.tsx` se necessário).
-- Itens ativos do menu já usam `bg-sidebar-accent` + `text-primary` — passa a ficar #1a2d4a + #3b82f6 automaticamente.
+**Tabela `indicacao_leads`** (leads capturados via link público):
+- `id` uuid PK
+- `user_id` uuid
+- `indicacao_id` uuid → indicacoes
+- `nome` text
+- `whatsapp` text nullable
+- `created_at` timestamptz
 
-## Parte 2 — Reestruturação financeira
+**Colunas em `profiles`** (configurações do programa):
+- `indicacao_ativo` boolean default true
+- `indicacao_modo` text default 'desconto' ('desconto' | 'comissao')
+- `indicacao_tipo` text default 'percentual' ('percentual' | 'valor_fixo')
+- `indicacao_valor` numeric default 10
 
-### 2A. Schema (nova migration)
+**RLS:**
+- `indicacoes`: SELECT/INSERT/UPDATE/DELETE para `auth.uid() = user_id`; **SELECT público por código** (anon) — necessário para a página pública resolver o link.
+- `indicacao_leads`: ALL para owner; **INSERT público (anon)** quando existe `indicacoes` correspondente — para captura sem login.
 
-Tabela `retiradas`:
-```sql
-create table public.retiradas (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null,
-  data date not null default current_date,
-  valor numeric not null default 0,
-  descricao text,
-  created_at timestamptz not null default now()
-);
-alter table public.retiradas enable row level security;
-create policy "Users manage own retiradas" on public.retiradas
-  for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
-```
+Atualizar `claim_legacy_data()` para migrar as duas novas tabelas.
 
-Adicionar em `profiles`:
-```sql
-alter table public.profiles
-  add column distribuicao_pro_labore  int not null default 50,
-  add column distribuicao_reinvest    int not null default 30,
-  add column distribuicao_reserva     int not null default 20,
-  add column meta_faturamento_mensal  numeric not null default 0;
-```
+### 2. Frontend — área autenticada
 
-Atualizar `claim_legacy_data()` para incluir `update public.retiradas ...`.
+**`src/pages/Indicacoes.tsx`** (nova página):
+- 4 cards de resumo: Links gerados, Leads capturados, Conversões, Taxa de conversão (%).
+- Botão "+ Gerar Link" (canto sup. direito).
+- Lista "TODOS OS LINKS (X)" com busca por nome/código.
+- Cada item: cliente + badge status, data, link completo (`<origin>/indicacao/CODIGO`), badge recompensa, lead capturado ou "Nenhum lead ainda", ações (copiar/abrir/editar/excluir).
+- Estado vazio com ícone de presente.
+- **Modal "Gerar Link"**: dropdown clientes + recompensa atual exibida + botão azul full-width. Gera código único (random 6 chars, retry se colisão).
+- **Modal "Editar Indicação"**: tipo (% ou R$) + valor + salvar.
+- **Seção "Configurações do Programa"**: toggle ativo, modo, tipo, valor, salvar (atualiza `profiles`).
+- Marcar como "Convertido" via ação no item (botão extra) — atende o requisito de marcação manual.
 
-### 2B. Dashboard (`src/pages/Dashboard.tsx`)
+**Sidebar (`src/components/AppSidebar.tsx`)**: adicionar item "Indicações" (ícone `Gift`) entre "Prévia Rápida" e "Financeiro".
 
-Remover o card único de Receita com filtro de período. Adicionar dois grids fixos:
+**Rota (`src/App.tsx`)**: `/indicacoes` (protegida) + `/indicacao/:codigo` (pública, fora do `ProtectedRoute`).
 
-Linha 1 (4 cards):
-- Faturamento Hoje
-- Faturamento da Semana (últimos 7 dias)
-- Faturamento do Mês
-- Lucro Líquido do Mês (receita do mês − despesas fixas − Meta Ads do mês)
+### 3. Página pública
 
-Linha 2 (4 cards):
-- Ticket Médio = receita total ÷ nº pedidos pagos
-- Total Despesas do Mês (fixas + Meta Ads integrado)
-- Total Retirado do mês (soma de `retiradas`)
-- % Margem de Lucro do mês
+**`src/pages/IndicacaoPublica.tsx`**:
+- Layout mobile-first, tema dark azul existente.
+- Logo "Foto Pronta", ícone 🎁, título "Você foi indicado!", texto adaptado para "ensaio digital" / "Foto Pronta".
+- Badge dourado com a recompensa real do link (busca por código via supabase anon).
+- Form: nome (obrigatório, validado com zod), WhatsApp (opcional), botão "Quero solicitar meu ensaio!".
+- Submit: insere em `indicacao_leads` com `user_id` e `indicacao_id` derivados do registro do código. Mostra confirmação.
+- Tratamento de código inválido / programa inativo.
 
-Seção "Recomendações Inteligentes" abaixo dos cards:
-- Lê `distribuicao_pro_labore/reinvest/reserva` do profile.
-- Mostra 3 linhas com os valores sugeridos a partir do lucro líquido do mês.
-- Lucro ≤ 0 → aviso vermelho.
-- Sem dados (sem pagamentos e sem despesas) → mensagem neutra.
+### 4. Lógica de métricas
 
-Manter "Galerias Recentes". Remover gráfico de área de receita (substituído pelos cards/Relatórios).
+- Links gerados = count(indicacoes)
+- Leads capturados = count(indicacao_leads)
+- Conversões = count(indicacoes where status='convertido')
+- Taxa = Conversões / Leads × 100 (0 se leads=0)
 
-### 2C. Página Financeiro (`src/pages/Pagamentos.tsx`)
+### 5. Validação e segurança
 
-Manter despesas, DRE, lista de pagamentos. Atualizar/adicionar:
+- Zod schemas para inputs (nome ≤100, whatsapp ≤20, valor numérico).
+- RLS estrita; política pública apenas para SELECT por código e INSERT de lead vinculado a indicação válida.
+- `user_id` sempre derivado da indicação no insert público (não enviado pelo cliente).
 
-Cards de topo (4): Faturamento Total (mês), Total Despesas (mês), Total Retiradas (mês), Lucro Líquido (mês). Substitui o quarto card atual (Margem) — margem fica no DRE.
+### Arquivos
 
-Nova seção "Retiradas (Pró-labore)" abaixo das despesas:
-- Botão "+ Nova Retirada" → modal (Data, Valor, Descrição).
-- Lista de retiradas do mês corrente.
-- Total do mês.
-
-Nova seção "Distribuição do Lucro":
-- 3 inputs numéricos (% Pró-labore / Reinvest / Reserva), validação soma = 100.
-- Botão "Salvar configuração" → update no `profiles`.
-- 3 cards coloridos com R$ sugerido com base no lucro líquido do mês.
-
-Nova seção "Meta mensal":
-- Input para `meta_faturamento_mensal`, botão salvar.
-- Barra de progresso (`<Progress />`) com % atingido; ao ≥ 100 mostra "🎉 Meta do mês atingida!".
-
-DRE atualizado para incluir as linhas pedidas (Receita Bruta, → Anúncios, → Orgânico, Total Despesas, → Meta Ads, → Despesas Fixas, Lucro Líquido, Total Retiradas, Saldo na Empresa = Lucro − Retiradas, Margem). O filtro mês/ano atual é mantido; retiradas e despesas usam o intervalo do filtro.
-
-### 2D. Nova página Relatórios (`src/pages/Relatorios.tsx`)
-
-Filtro global: Últimos 3 / 6 / 12 meses (default 6).
-
-- Gráfico 1: Barras — faturamento mensal (recharts `BarChart`, agregando `pagamentos` pagos por mês).
-- Gráfico 2: Pizza — origem das vendas (Meta Ads / Orgânico / Indicação / Outros) lendo `pedidos.origem_cliente` (com fallback "Outros").
-- Gráfico 3: Barras — despesas por categoria (Ferramenta de IA / Marketing / Infraestrutura / Outro).
-- Gráfico 4: Linha — evolução do lucro líquido mês a mês.
-- Tabela de Histórico de Retiradas (Data | Descrição | Valor) com total no rodapé.
-
-### 2E. Menu lateral (`src/components/AppSidebar.tsx` + `src/App.tsx`)
-
-Nova ordem e item "Relatórios" entre Financeiro e Meta Ads:
-1. Dashboard 2. Clientes 3. Pedidos 4. Galerias 5. Prévia Rápida 6. Financeiro 7. Relatórios 8. Meta Ads 9. Configurações.
-
-Adicionar rota `/relatorios → <Relatorios />` em `App.tsx`.
-
-## Arquivos a criar/editar
-
-- `src/index.css` — novos tokens HSL azuis.
-- `src/components/AppSidebar.tsx` — reordenar menu, adicionar Relatórios, ajustar logo.
-- `src/App.tsx` — registrar rota `/relatorios`.
-- `src/pages/Dashboard.tsx` — substituir cards e adicionar Recomendações Inteligentes.
-- `src/pages/Pagamentos.tsx` — novos cards, seções Retiradas / Distribuição / Meta, DRE atualizado.
-- `src/pages/Relatorios.tsx` — nova página com 4 gráficos + tabela de retiradas.
-- `supabase/migrations/<timestamp>_retiradas_e_distribuicao.sql` — tabela `retiradas`, colunas em `profiles`, atualização de `claim_legacy_data()`.
-
-Sem duplicação: Retiradas só são cadastradas em Financeiro; Dashboard e Relatórios apenas leem. Distribuição do Lucro é configurada em Financeiro e consumida em Dashboard. Meta Ads continua sendo lançada na página Meta Ads e entra automaticamente nas despesas.
+Criar: `src/pages/Indicacoes.tsx`, `src/pages/IndicacaoPublica.tsx`, migração SQL.
+Editar: `src/App.tsx`, `src/components/AppSidebar.tsx`, `mem://index.md` + nova memória `mem://features/indicacoes.md`.

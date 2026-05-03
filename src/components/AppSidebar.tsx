@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Image, Zap, Package, DollarSign, Megaphone, Settings, Camera, LogOut, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Users, Image, Zap, Package, DollarSign, Megaphone, Settings, Camera, LogOut, BarChart3, Gift } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -19,6 +19,7 @@ const menuItems = [
 { title: "Pedidos", url: "/pedidos", icon: Package },
 { title: "Galerias", url: "/galerias", icon: Image },
 { title: "Prévia Rápida", url: "/previa-rapida", icon: Zap },
+{ title: "Indicações", url: "/indicacoes", icon: Gift },
 { title: "Financeiro", url: "/financeiro", icon: DollarSign },
 { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 { title: "Meta Ads", url: "/meta-ads", icon: Megaphone },

@@ -18,6 +18,8 @@ import MetaAds from "./pages/MetaAds";
 import Configuracoes from "./pages/Configuracoes";
 import GaleriaPublica from "./pages/GaleriaPublica";
 import PreviaRapida from "./pages/PreviaRapida";
+import Indicacoes from "./pages/Indicacoes";
+import IndicacaoPublica from "./pages/IndicacaoPublica";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +33,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/galeria/:link" element={<GaleriaPublica />} />
+            <Route path="/indicacao/:codigo" element={<IndicacaoPublica />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
@@ -39,6 +42,7 @@ const App = () => (
               <Route path="/galerias" element={<Galerias />} />
               <Route path="/galerias/:id" element={<GaleriaDetail />} />
               <Route path="/previa-rapida" element={<PreviaRapida />} />
+              <Route path="/indicacoes" element={<Indicacoes />} />
               <Route path="/pedidos" element={<Pedidos />} />
               <Route path="/financeiro" element={<Pagamentos />} />
               <Route path="/relatorios" element={<Relatorios />} />

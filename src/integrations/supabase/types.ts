@@ -222,6 +222,77 @@ export type Database = {
           },
         ]
       }
+      indicacao_leads: {
+        Row: {
+          created_at: string
+          id: string
+          indicacao_id: string
+          nome: string
+          user_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          indicacao_id: string
+          nome: string
+          user_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          indicacao_id?: string
+          nome?: string
+          user_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "indicacao_leads_indicacao_id_fkey"
+            columns: ["indicacao_id"]
+            isOneToOne: false
+            referencedRelation: "indicacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      indicacoes: {
+        Row: {
+          cliente_id: string
+          codigo: string
+          created_at: string
+          id: string
+          recompensa_tipo: string
+          recompensa_valor: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cliente_id: string
+          codigo: string
+          created_at?: string
+          id?: string
+          recompensa_tipo?: string
+          recompensa_valor?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cliente_id?: string
+          codigo?: string
+          created_at?: string
+          id?: string
+          recompensa_tipo?: string
+          recompensa_valor?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       meta_ads_investimentos: {
         Row: {
           created_at: string
@@ -369,6 +440,10 @@ export type Database = {
           distribuicao_reserva: number
           email: string | null
           id: string
+          indicacao_ativo: boolean
+          indicacao_modo: string
+          indicacao_tipo: string
+          indicacao_valor: number
           marca_dagua_camadas: Json
           marca_dagua_opacidade: number
           marca_dagua_posicao: string
@@ -395,6 +470,10 @@ export type Database = {
           distribuicao_reserva?: number
           email?: string | null
           id?: string
+          indicacao_ativo?: boolean
+          indicacao_modo?: string
+          indicacao_tipo?: string
+          indicacao_valor?: number
           marca_dagua_camadas?: Json
           marca_dagua_opacidade?: number
           marca_dagua_posicao?: string
@@ -421,6 +500,10 @@ export type Database = {
           distribuicao_reserva?: number
           email?: string | null
           id?: string
+          indicacao_ativo?: boolean
+          indicacao_modo?: string
+          indicacao_tipo?: string
+          indicacao_valor?: number
           marca_dagua_camadas?: Json
           marca_dagua_opacidade?: number
           marca_dagua_posicao?: string

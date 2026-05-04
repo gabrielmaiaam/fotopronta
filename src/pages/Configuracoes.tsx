@@ -9,6 +9,7 @@ import { Download, Info, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { generatePixPayload } from "@/lib/pix";
 import WatermarkEditor, { type WatermarkLayer } from "@/components/WatermarkEditor";
+import PacotesManager from "@/components/PacotesManager";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
 

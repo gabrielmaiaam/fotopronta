@@ -372,6 +372,10 @@ export default function Configuracoes() {
               </div>
         </TabsContent>
 
+        <TabsContent value="pacotes">
+          <PacotesManager />
+        </TabsContent>
+
         <TabsContent value="backup">
           <Card className="border-border bg-card max-w-2xl">
             <CardContent className="p-6 space-y-6">

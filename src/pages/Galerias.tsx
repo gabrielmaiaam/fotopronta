@@ -108,7 +108,7 @@ export default function Galerias() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-display font-bold">Galerias</h1>
-        <Button onClick={() => { setForm({ titulo: "", cliente_id: "", valor_total: "", preco_avulso: "" }); setModalOpen(true); }}>
+        <Button onClick={() => { setForm({ titulo: "", cliente_id: "", valor_total: "", preco_avulso: "", pacote: "" }); setModalOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Nova Galeria
         </Button>
       </div>

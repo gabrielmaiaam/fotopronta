@@ -97,6 +97,7 @@ export default function Pedidos() {
       id: p.id,
       cliente_id: p.cliente_id,
       servico: p.servico,
+      pacote: p.pacote || "",
       data_entrega: p.data_entrega ? format(new Date(p.data_entrega), "yyyy-MM-dd'T'HH:mm") : "",
       origem_cliente: p.origem_cliente || "",
     });

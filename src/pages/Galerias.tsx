@@ -77,6 +77,7 @@ export default function Galerias() {
       user_id: user.id,
       cliente_id: form.cliente_id,
       titulo: form.titulo,
+      pacote: form.pacote || null,
       valor_total: parseFloat(form.valor_total) || 0,
       preco_avulso: form.preco_avulso ? parseFloat(form.preco_avulso) : null,
       link_publico: linkPublico,

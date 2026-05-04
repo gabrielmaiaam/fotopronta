@@ -20,16 +20,17 @@ export default function Galerias() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [galerias, setGalerias] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
+  const [pacotes, setPacotes] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [clienteFilter, setClienteFilter] = useState(searchParams.get("cliente") || "");
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({
-    titulo: "", cliente_id: "", valor_total: "", preco_avulso: "",
+    titulo: "", cliente_id: "", valor_total: "", preco_avulso: "", pacote: "",
   });
 
   useEffect(() => {
-    loadGalerias(); loadClientes();
+    loadGalerias(); loadClientes(); loadPacotes();
   }, []);
 
   const loadGalerias = async () => {
@@ -43,6 +44,11 @@ export default function Galerias() {
   const loadClientes = async () => {
     const { data } = await supabase.from("clientes").select("id, nome");
     setClientes(data || []);
+  };
+
+  const loadPacotes = async () => {
+    const { data } = await supabase.from("pacotes" as any).select("*").order("ordem");
+    setPacotes((data as any[]) || []);
   };
 
   const filtered = galerias.filter((g) => {
@@ -71,6 +77,7 @@ export default function Galerias() {
       user_id: user.id,
       cliente_id: form.cliente_id,
       titulo: form.titulo,
+      pacote: form.pacote || null,
       valor_total: parseFloat(form.valor_total) || 0,
       preco_avulso: form.preco_avulso ? parseFloat(form.preco_avulso) : null,
       link_publico: linkPublico,
@@ -101,7 +108,7 @@ export default function Galerias() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-display font-bold">Galerias</h1>
-        <Button onClick={() => { setForm({ titulo: "", cliente_id: "", valor_total: "", preco_avulso: "" }); setModalOpen(true); }}>
+        <Button onClick={() => { setForm({ titulo: "", cliente_id: "", valor_total: "", preco_avulso: "", pacote: "" }); setModalOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Nova Galeria
         </Button>
       </div>
@@ -206,6 +213,36 @@ export default function Galerias() {
                 </SelectContent>
               </Select>
             </div>
+            {pacotes.length > 0 && (
+              <div className="space-y-2">
+                <Label>Pacote</Label>
+                <Select
+                  value={form.pacote || "__custom__"}
+                  onValueChange={(v) => {
+                    if (v === "__custom__") {
+                      setForm({ ...form, pacote: "" });
+                    } else {
+                      const p = pacotes.find(pk => pk.nome === v);
+                      setForm({
+                        ...form,
+                        pacote: v,
+                        valor_total: p ? String(p.preco) : form.valor_total,
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-input border-border"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__custom__">Personalizado</SelectItem>
+                    {pacotes.map((p) => (
+                      <SelectItem key={p.id} value={p.nome}>
+                        {p.icone} {p.nome} — R$ {Number(p.preco).toFixed(2).replace(".", ",")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Valor do pacote completo (R$)</Label>
               <Input type="number" step="0.01" value={form.valor_total} onChange={(e) => setForm({ ...form, valor_total: e.target.value })} className="bg-input border-border" />

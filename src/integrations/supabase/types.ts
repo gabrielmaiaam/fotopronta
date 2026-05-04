@@ -320,6 +320,45 @@ export type Database = {
         }
         Relationships: []
       }
+      pacotes: {
+        Row: {
+          beneficios: Json
+          created_at: string
+          icone: string
+          id: string
+          nome: string
+          ordem: number
+          preco: number
+          quantidade_fotos: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          beneficios?: Json
+          created_at?: string
+          icone?: string
+          id?: string
+          nome: string
+          ordem?: number
+          preco?: number
+          quantidade_fotos?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          beneficios?: Json
+          created_at?: string
+          icone?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          preco?: number
+          quantidade_fotos?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pagamentos: {
         Row: {
           cliente_id: string

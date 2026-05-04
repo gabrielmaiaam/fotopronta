@@ -19,12 +19,13 @@ export default function Pedidos() {
   const { user } = useAuth();
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
+  const [pacotes, setPacotes] = useState<any[]>([]);
   const [view, setView] = useState<"list" | "calendar">("list");
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
-  const [form, setForm] = useState({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "" });
+  const [form, setForm] = useState({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "", pacote: "" });
   const [, setTick] = useState(0);
 
   // Tick every 30s to update cronômetro
@@ -34,7 +35,7 @@ export default function Pedidos() {
   }, []);
 
   useEffect(() => {
-    loadPedidos(); loadClientes();
+    loadPedidos(); loadClientes(); loadPacotes();
   }, []);
 
   const loadPedidos = async () => {
@@ -48,6 +49,11 @@ export default function Pedidos() {
   const loadClientes = async () => {
     const { data } = await supabase.from("clientes").select("id, nome");
     setClientes(data || []);
+  };
+
+  const loadPacotes = async () => {
+    const { data } = await supabase.from("pacotes" as any).select("*").order("ordem");
+    setPacotes((data as any[]) || []);
   };
 
   const handleCreate = async () => {
@@ -68,6 +74,7 @@ export default function Pedidos() {
       user_id: user.id,
       cliente_id: form.cliente_id,
       servico: form.servico,
+      pacote: form.pacote || null,
       data_entrega: form.data_entrega ? new Date(form.data_entrega).toISOString() : null,
       tempo_estimado_minutos: tempoEstimado,
       link_comprovante: linkComprovante,
@@ -90,6 +97,7 @@ export default function Pedidos() {
       id: p.id,
       cliente_id: p.cliente_id,
       servico: p.servico,
+      pacote: p.pacote || "",
       data_entrega: p.data_entrega ? format(new Date(p.data_entrega), "yyyy-MM-dd'T'HH:mm") : "",
       origem_cliente: p.origem_cliente || "",
     });
@@ -108,6 +116,7 @@ export default function Pedidos() {
     const { error } = await supabase.from("pedidos").update({
       cliente_id: editForm.cliente_id,
       servico: editForm.servico,
+      pacote: editForm.pacote || null,
       data_entrega: editForm.data_entrega ? new Date(editForm.data_entrega).toISOString() : null,
       tempo_estimado_minutos: tempoEstimado,
       origem_cliente: editForm.origem_cliente,
@@ -185,7 +194,7 @@ export default function Pedidos() {
           <h1 className="text-2xl font-display font-bold">Pedidos</h1>
           <p className="text-sm text-muted-foreground">Gerencie seus pedidos e acompanhe o progresso</p>
         </div>
-        <Button onClick={() => { setForm({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "" }); setModalOpen(true); }}>
+        <Button onClick={() => { setForm({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "", pacote: "" }); setModalOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Novo Pedido
         </Button>
       </div>
@@ -347,6 +356,35 @@ export default function Pedidos() {
                 <SelectContent>{clientes.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            {pacotes.length > 0 && (
+              <div className="space-y-2">
+                <Label>Pacote</Label>
+                <Select
+                  value={form.pacote || "__none__"}
+                  onValueChange={(v) => {
+                    if (v === "__none__") {
+                      setForm({ ...form, pacote: "" });
+                    } else {
+                      setForm({
+                        ...form,
+                        pacote: v,
+                        servico: form.servico.trim() ? form.servico : v,
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-input border-border"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sem pacote</SelectItem>
+                    {pacotes.map((p) => (
+                      <SelectItem key={p.id} value={p.nome}>
+                        {p.icone} {p.nome} — R$ {Number(p.preco).toFixed(2).replace(".", ",")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Serviço</Label>
               <Input value={form.servico} onChange={(e) => setForm({ ...form, servico: e.target.value })} placeholder="Ex: Ensaio Aniversário, Ensaio Infantil..." className="bg-input border-border" />
@@ -390,6 +428,25 @@ export default function Pedidos() {
                   <SelectContent>{clientes.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+              {pacotes.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Pacote</Label>
+                  <Select
+                    value={editForm.pacote || "__none__"}
+                    onValueChange={(v) => setEditForm({ ...editForm, pacote: v === "__none__" ? "" : v })}
+                  >
+                    <SelectTrigger className="bg-input border-border"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Sem pacote</SelectItem>
+                      {pacotes.map((p) => (
+                        <SelectItem key={p.id} value={p.nome}>
+                          {p.icone} {p.nome} — R$ {Number(p.preco).toFixed(2).replace(".", ",")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Serviço</Label>
                 <Input value={editForm.servico} onChange={(e) => setEditForm({ ...editForm, servico: e.target.value })} className="bg-input border-border" />

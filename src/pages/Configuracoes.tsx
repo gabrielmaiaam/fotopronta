@@ -9,6 +9,7 @@ import { Download, Info, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { generatePixPayload } from "@/lib/pix";
 import WatermarkEditor, { type WatermarkLayer } from "@/components/WatermarkEditor";
+import PacotesManager from "@/components/PacotesManager";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
 
@@ -273,6 +274,7 @@ export default function Configuracoes() {
           <TabsTrigger value="perfil">Perfil</TabsTrigger>
           <TabsTrigger value="pix">PIX & QR Code</TabsTrigger>
           <TabsTrigger value="marca">Marca d'água</TabsTrigger>
+          <TabsTrigger value="pacotes">Pacotes & Preços</TabsTrigger>
           <TabsTrigger value="backup">Backup & Exportação</TabsTrigger>
         </TabsList>
 
@@ -368,6 +370,10 @@ export default function Configuracoes() {
                   As configurações são aplicadas automaticamente no upload das fotos. Fotos já enviadas não são alteradas.
                 </p>
               </div>
+        </TabsContent>
+
+        <TabsContent value="pacotes">
+          <PacotesManager />
         </TabsContent>
 
         <TabsContent value="backup">

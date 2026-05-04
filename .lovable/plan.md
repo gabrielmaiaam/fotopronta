@@ -1,80 +1,81 @@
-## Plano: Módulo de Indicações
+# Pacotes & Preços — Nova aba em Configurações
 
-Novo módulo de programa de indicações com link público de captura de leads, integrado ao sistema existente.
+## 1. Banco de dados (migration)
 
-### 1. Banco de dados (migração)
+Criar tabela `pacotes` vinculada ao usuário:
 
-**Tabela `indicacoes`** (links gerados):
-- `id` uuid PK
-- `user_id` uuid (RLS)
-- `cliente_id` uuid (cliente que indica)
-- `codigo` text único (gerado automático, ~6 chars)
-- `recompensa_tipo` text ('percentual' | 'valor_fixo')
-- `recompensa_valor` numeric
-- `status` text ('aguardando' | 'convertido') default 'aguardando'
-- `created_at` timestamptz
+```sql
+CREATE TABLE public.pacotes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  nome text NOT NULL,
+  icone text DEFAULT '📦',
+  quantidade_fotos integer NOT NULL DEFAULT 1,
+  preco numeric NOT NULL DEFAULT 0,
+  beneficios jsonb NOT NULL DEFAULT '[]'::jsonb,
+  ordem integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.pacotes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own pacotes" ON public.pacotes
+  FOR ALL TO authenticated
+  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+```
 
-**Tabela `indicacao_leads`** (leads capturados via link público):
-- `id` uuid PK
-- `user_id` uuid
-- `indicacao_id` uuid → indicacoes
-- `nome` text
-- `whatsapp` text nullable
-- `created_at` timestamptz
+Atualizar `claim_legacy_data` para incluir `pacotes`.
 
-**Colunas em `profiles`** (configurações do programa):
-- `indicacao_ativo` boolean default true
-- `indicacao_modo` text default 'desconto' ('desconto' | 'comissao')
-- `indicacao_tipo` text default 'percentual' ('percentual' | 'valor_fixo')
-- `indicacao_valor` numeric default 10
+Os 4 pacotes padrão (Básico, Essencial, Clássico, Premium) **não** são inseridos via migration (multi-tenant). Em vez disso, a página `Configuracoes` faz seed automático na primeira visita do usuário, quando `select` retornar lista vazia.
 
-**RLS:**
-- `indicacoes`: SELECT/INSERT/UPDATE/DELETE para `auth.uid() = user_id`; **SELECT público por código** (anon) — necessário para a página pública resolver o link.
-- `indicacao_leads`: ALL para owner; **INSERT público (anon)** quando existe `indicacoes` correspondente — para captura sem login.
+## 2. Nova aba em `src/pages/Configuracoes.tsx`
 
-Atualizar `claim_legacy_data()` para migrar as duas novas tabelas.
+Adicionar `<TabsTrigger value="pacotes">Pacotes & Preços</TabsTrigger>` e respectivo `<TabsContent>`. Conteúdo:
 
-### 2. Frontend — área autenticada
+- Header com botão "+ Novo Pacote" (cria pacote em branco no estado local).
+- Grid responsivo (`md:grid-cols-2`) de cards, um por pacote, contendo:
+  - Linha topo: input de ícone (largura ~60px, emoji) + input de nome.
+  - Inputs numéricos: Quantidade de fotos, Preço (R$).
+  - Linha calculada (read-only): "Valor unitário: R$ X,XX" — recalculado em tempo real via `useMemo` (`preco / quantidade`, mostra "—" se quantidade ≤ 0).
+  - Bloco "Benefícios": lista de inputs com botão de remover por linha (ícone X) + botão "+ Adicionar benefício". Pode ficar vazio.
+  - Footer do card: botão `Salvar alterações` (per-pacote, faz upsert) + botão `Excluir` (vermelho, abre `AlertDialog` de confirmação).
+- Estado: `pacotes: PacoteForm[]` carregado de `supabase.from('pacotes').select().order('ordem')`. Edições mantidas em memória até o salvamento.
 
-**`src/pages/Indicacoes.tsx`** (nova página):
-- 4 cards de resumo: Links gerados, Leads capturados, Conversões, Taxa de conversão (%).
-- Botão "+ Gerar Link" (canto sup. direito).
-- Lista "TODOS OS LINKS (X)" com busca por nome/código.
-- Cada item: cliente + badge status, data, link completo (`<origin>/indicacao/CODIGO`), badge recompensa, lead capturado ou "Nenhum lead ainda", ações (copiar/abrir/editar/excluir).
-- Estado vazio com ícone de presente.
-- **Modal "Gerar Link"**: dropdown clientes + recompensa atual exibida + botão azul full-width. Gera código único (random 6 chars, retry se colisão).
-- **Modal "Editar Indicação"**: tipo (% ou R$) + valor + salvar.
-- **Seção "Configurações do Programa"**: toggle ativo, modo, tipo, valor, salvar (atualiza `profiles`).
-- Marcar como "Convertido" via ação no item (botão extra) — atende o requisito de marcação manual.
+## 3. Integração nos modais
 
-**Sidebar (`src/components/AppSidebar.tsx`)**: adicionar item "Indicações" (ícone `Gift`) entre "Prévia Rápida" e "Financeiro".
+### Galerias (`src/pages/Galerias.tsx`)
+- Carregar pacotes do usuário no mount.
+- Adicionar `<Select>` "Pacote" acima do campo "Valor do pacote completo".
+- Ao selecionar um pacote: preencher automaticamente `valor_total` (preco), e armazenar `pacote` (nome) na coluna existente `galerias.pacote`. Usuário ainda pode editar manualmente o valor.
+- Opção "Personalizado" mantém comportamento atual.
 
-**Rota (`src/App.tsx`)**: `/indicacoes` (protegida) + `/indicacao/:codigo` (pública, fora do `ProtectedRoute`).
+### Pedidos (`src/pages/Pedidos.tsx`)
+- Adicionar `<Select>` "Pacote" no modal de criação (e no modal de edição).
+- Ao selecionar: preencher `pacote` (coluna existente em `pedidos.pacote`) e usar nome no campo `servico` se ainda vazio.
+- Não há coluna de valor em pedidos hoje, então só o vínculo de pacote é gravado.
 
-### 3. Página pública
+## 4. Seed dos 4 pacotes padrão
 
-**`src/pages/IndicacaoPublica.tsx`**:
-- Layout mobile-first, tema dark azul existente.
-- Logo "Foto Pronta", ícone 🎁, título "Você foi indicado!", texto adaptado para "ensaio digital" / "Foto Pronta".
-- Badge dourado com a recompensa real do link (busca por código via supabase anon).
-- Form: nome (obrigatório, validado com zod), WhatsApp (opcional), botão "Quero solicitar meu ensaio!".
-- Submit: insere em `indicacao_leads` com `user_id` e `indicacao_id` derivados do registro do código. Mostra confirmação.
-- Tratamento de código inválido / programa inativo.
+Na primeira carga de `Configuracoes` na aba Pacotes, se `pacotes` estiver vazio para o usuário:
 
-### 4. Lógica de métricas
+```ts
+const defaults = [
+  { icone:'🔹', nome:'Pacote Básico',     quantidade_fotos:1,  preco:14.90, beneficios:['1 cenário e 1 look à sua escolha'] },
+  { icone:'✨', nome:'Pacote Essencial',  quantidade_fotos:3,  preco:34.90, beneficios:['1 cenário e 1 look à sua escolha','1 ajuste gratuito após entrega'] },
+  { icone:'⭐', nome:'Pacote Clássico',   quantidade_fotos:5,  preco:49.90, beneficios:['1 cenário e 1 look à sua escolha','1 ajuste gratuito após entrega'] },
+  { icone:'💎', nome:'Pacote Premium',    quantidade_fotos:10, preco:89.90, beneficios:['Até 2 cenários e 2 looks à sua escolha','1 ajuste gratuito após entrega'] },
+];
+```
 
-- Links gerados = count(indicacoes)
-- Leads capturados = count(indicacao_leads)
-- Conversões = count(indicacoes where status='convertido')
-- Taxa = Conversões / Leads × 100 (0 se leads=0)
+Inserir todos com `user_id = auth.uid()` e `ordem` 0..3, depois recarregar.
 
-### 5. Validação e segurança
+## 5. Memória do projeto
 
-- Zod schemas para inputs (nome ≤100, whatsapp ≤20, valor numérico).
-- RLS estrita; política pública apenas para SELECT por código e INSERT de lead vinculado a indicação válida.
-- `user_id` sempre derivado da indicação no insert público (não enviado pelo cliente).
+Adicionar `mem://features/pacotes` resumindo o modelo (tabela `pacotes`, seed automático, integração com Galerias/Pedidos) e referenciá-lo em `mem://index.md`.
 
-### Arquivos
+## Arquivos afetados
 
-Criar: `src/pages/Indicacoes.tsx`, `src/pages/IndicacaoPublica.tsx`, migração SQL.
-Editar: `src/App.tsx`, `src/components/AppSidebar.tsx`, `mem://index.md` + nova memória `mem://features/indicacoes.md`.
+- `supabase/migrations/<timestamp>_pacotes.sql` (novo)
+- `src/pages/Configuracoes.tsx` (nova aba)
+- `src/pages/Galerias.tsx` (select de pacote no modal)
+- `src/pages/Pedidos.tsx` (select de pacote nos modais)
+- `mem://features/pacotes.md` + atualização do `mem://index.md`

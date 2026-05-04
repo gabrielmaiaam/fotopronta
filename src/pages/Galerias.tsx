@@ -20,12 +20,13 @@ export default function Galerias() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [galerias, setGalerias] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
+  const [pacotes, setPacotes] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [clienteFilter, setClienteFilter] = useState(searchParams.get("cliente") || "");
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({
-    titulo: "", cliente_id: "", valor_total: "", preco_avulso: "",
+    titulo: "", cliente_id: "", valor_total: "", preco_avulso: "", pacote: "",
   });
 
   useEffect(() => {

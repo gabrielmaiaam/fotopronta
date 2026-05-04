@@ -428,6 +428,25 @@ export default function Pedidos() {
                   <SelectContent>{clientes.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+              {pacotes.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Pacote</Label>
+                  <Select
+                    value={editForm.pacote || "__none__"}
+                    onValueChange={(v) => setEditForm({ ...editForm, pacote: v === "__none__" ? "" : v })}
+                  >
+                    <SelectTrigger className="bg-input border-border"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Sem pacote</SelectItem>
+                      {pacotes.map((p) => (
+                        <SelectItem key={p.id} value={p.nome}>
+                          {p.icone} {p.nome} — R$ {Number(p.preco).toFixed(2).replace(".", ",")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Serviço</Label>
                 <Input value={editForm.servico} onChange={(e) => setEditForm({ ...editForm, servico: e.target.value })} className="bg-input border-border" />

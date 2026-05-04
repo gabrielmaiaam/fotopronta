@@ -116,6 +116,7 @@ export default function Pedidos() {
     const { error } = await supabase.from("pedidos").update({
       cliente_id: editForm.cliente_id,
       servico: editForm.servico,
+      pacote: editForm.pacote || null,
       data_entrega: editForm.data_entrega ? new Date(editForm.data_entrega).toISOString() : null,
       tempo_estimado_minutos: tempoEstimado,
       origem_cliente: editForm.origem_cliente,

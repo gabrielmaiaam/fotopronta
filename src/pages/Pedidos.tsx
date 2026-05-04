@@ -74,6 +74,7 @@ export default function Pedidos() {
       user_id: user.id,
       cliente_id: form.cliente_id,
       servico: form.servico,
+      pacote: form.pacote || null,
       data_entrega: form.data_entrega ? new Date(form.data_entrega).toISOString() : null,
       tempo_estimado_minutos: tempoEstimado,
       link_comprovante: linkComprovante,

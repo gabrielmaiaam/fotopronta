@@ -213,6 +213,36 @@ export default function Galerias() {
                 </SelectContent>
               </Select>
             </div>
+            {pacotes.length > 0 && (
+              <div className="space-y-2">
+                <Label>Pacote</Label>
+                <Select
+                  value={form.pacote || "__custom__"}
+                  onValueChange={(v) => {
+                    if (v === "__custom__") {
+                      setForm({ ...form, pacote: "" });
+                    } else {
+                      const p = pacotes.find(pk => pk.nome === v);
+                      setForm({
+                        ...form,
+                        pacote: v,
+                        valor_total: p ? String(p.preco) : form.valor_total,
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-input border-border"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__custom__">Personalizado</SelectItem>
+                    {pacotes.map((p) => (
+                      <SelectItem key={p.id} value={p.nome}>
+                        {p.icone} {p.nome} — R$ {Number(p.preco).toFixed(2).replace(".", ",")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Valor do pacote completo (R$)</Label>
               <Input type="number" step="0.01" value={form.valor_total} onChange={(e) => setForm({ ...form, valor_total: e.target.value })} className="bg-input border-border" />

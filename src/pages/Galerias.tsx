@@ -30,7 +30,7 @@ export default function Galerias() {
   });
 
   useEffect(() => {
-    loadGalerias(); loadClientes();
+    loadGalerias(); loadClientes(); loadPacotes();
   }, []);
 
   const loadGalerias = async () => {
@@ -44,6 +44,11 @@ export default function Galerias() {
   const loadClientes = async () => {
     const { data } = await supabase.from("clientes").select("id, nome");
     setClientes(data || []);
+  };
+
+  const loadPacotes = async () => {
+    const { data } = await supabase.from("pacotes" as any).select("*").order("ordem");
+    setPacotes((data as any[]) || []);
   };
 
   const filtered = galerias.filter((g) => {

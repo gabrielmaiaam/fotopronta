@@ -274,6 +274,7 @@ export default function Configuracoes() {
           <TabsTrigger value="perfil">Perfil</TabsTrigger>
           <TabsTrigger value="pix">PIX & QR Code</TabsTrigger>
           <TabsTrigger value="marca">Marca d'água</TabsTrigger>
+          <TabsTrigger value="pacotes">Pacotes & Preços</TabsTrigger>
           <TabsTrigger value="backup">Backup & Exportação</TabsTrigger>
         </TabsList>
 

@@ -356,6 +356,35 @@ export default function Pedidos() {
                 <SelectContent>{clientes.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            {pacotes.length > 0 && (
+              <div className="space-y-2">
+                <Label>Pacote</Label>
+                <Select
+                  value={form.pacote || "__none__"}
+                  onValueChange={(v) => {
+                    if (v === "__none__") {
+                      setForm({ ...form, pacote: "" });
+                    } else {
+                      setForm({
+                        ...form,
+                        pacote: v,
+                        servico: form.servico.trim() ? form.servico : v,
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-input border-border"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sem pacote</SelectItem>
+                    {pacotes.map((p) => (
+                      <SelectItem key={p.id} value={p.nome}>
+                        {p.icone} {p.nome} — R$ {Number(p.preco).toFixed(2).replace(".", ",")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Serviço</Label>
               <Input value={form.servico} onChange={(e) => setForm({ ...form, servico: e.target.value })} placeholder="Ex: Ensaio Aniversário, Ensaio Infantil..." className="bg-input border-border" />

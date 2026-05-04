@@ -19,12 +19,13 @@ export default function Pedidos() {
   const { user } = useAuth();
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
+  const [pacotes, setPacotes] = useState<any[]>([]);
   const [view, setView] = useState<"list" | "calendar">("list");
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
-  const [form, setForm] = useState({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "" });
+  const [form, setForm] = useState({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "", pacote: "" });
   const [, setTick] = useState(0);
 
   // Tick every 30s to update cronômetro

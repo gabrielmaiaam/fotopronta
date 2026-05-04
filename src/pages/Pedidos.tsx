@@ -35,7 +35,7 @@ export default function Pedidos() {
   }, []);
 
   useEffect(() => {
-    loadPedidos(); loadClientes();
+    loadPedidos(); loadClientes(); loadPacotes();
   }, []);
 
   const loadPedidos = async () => {
@@ -49,6 +49,11 @@ export default function Pedidos() {
   const loadClientes = async () => {
     const { data } = await supabase.from("clientes").select("id, nome");
     setClientes(data || []);
+  };
+
+  const loadPacotes = async () => {
+    const { data } = await supabase.from("pacotes" as any).select("*").order("ordem");
+    setPacotes((data as any[]) || []);
   };
 
   const handleCreate = async () => {

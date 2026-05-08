@@ -176,7 +176,7 @@ export default function MetaAds() {
             <Plus className="h-4 w-4 mr-1" /> Registrar Investimento
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           {lancamentosMes.length > 0 ? (
             <Table>
               <TableHeader>
@@ -184,29 +184,66 @@ export default function MetaAds() {
                   <TableHead>Data</TableHead>
                   <TableHead className="text-right">Investido</TableHead>
                   <TableHead className="text-right">Imposto ({taxa}%)</TableHead>
-                  <TableHead className="text-right">Retorno (mês)</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="text-right">Faturado</TableHead>
+                  <TableHead className="text-right">Lucro</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lancamentosMes.map(l => (
-                  <TableRow key={l.id}>
-                    <TableCell>{format(new Date(l.data + "T00:00:00"), "dd/MM/yyyy")}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(Number(l.valor_investido))}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{formatCurrency(Number(l.valor_investido) * (taxa / 100))}</TableCell>
-                    <TableCell className="text-right text-success">{formatCurrency(retornoMes)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(l.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {lancamentosMes.map(l => {
+                  const faturadoDia = pagamentos
+                    .filter(p => p.pedidos?.origem_cliente === "meta_ads")
+                    .filter(p => format(new Date(p.updated_at || p.created_at), "yyyy-MM-dd") === l.data)
+                    .reduce((s, p) => s + Number(p.valor_pago), 0);
+                  const lucroDia = faturadoDia - Number(l.valor_investido);
+                  return (
+                    <TableRow key={l.id}>
+                      <TableCell>{format(new Date(l.data + "T00:00:00"), "dd/MM/yyyy")}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(Number(l.valor_investido))}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{formatCurrency(Number(l.valor_investido) * (taxa / 100))}</TableCell>
+                      <TableCell className="text-right text-success">{formatCurrency(faturadoDia)}</TableCell>
+                      <TableCell className={`text-right font-medium ${lucroDia >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(lucroDia)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(l.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-6">Nenhum investimento registrado este mês</p>
           )}
+
+          {/* Totais do mês */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+            <Card className="border-border bg-background"><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1"><TrendingDown className="h-4 w-4" /><span className="text-xs">💸 Total Investido</span></div>
+              <p className="text-lg font-bold">{formatCurrency(investidoMes)}</p>
+            </CardContent></Card>
+            <Card className="border-border bg-background"><CardContent className="p-4">
+              <div className="flex items-center gap-2 text-success mb-1"><DollarSign className="h-4 w-4" /><span className="text-xs">💵 Total Faturado</span></div>
+              <p className="text-lg font-bold text-success">{formatCurrency(retornoMes)}</p>
+            </CardContent></Card>
+            {(() => {
+              const lucroMesSimples = retornoMes - investidoMes;
+              const roiMes = investidoMes > 0 ? (lucroMesSimples / investidoMes) * 100 : 0;
+              return (
+                <>
+                  <Card className="border-border bg-background"><CardContent className="p-4">
+                    <div className={`flex items-center gap-2 mb-1 ${lucroMesSimples >= 0 ? "text-success" : "text-destructive"}`}><TrendingUp className="h-4 w-4" /><span className="text-xs">💰 Total Lucro</span></div>
+                    <p className={`text-lg font-bold ${lucroMesSimples >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(lucroMesSimples)}</p>
+                  </CardContent></Card>
+                  <Card className="border-border bg-background"><CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-muted-foreground mb-1"><BarChart3 className="h-4 w-4" /><span className="text-xs">📈 ROI do Mês</span></div>
+                    <p className={`text-lg font-bold ${roiMes >= 0 ? "text-success" : "text-destructive"}`}>{investidoMes > 0 ? `${roiMes.toFixed(1)}%` : "—"}</p>
+                  </CardContent></Card>
+                </>
+              );
+            })()}
+          </div>
         </CardContent>
       </Card>
 

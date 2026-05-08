@@ -235,7 +235,7 @@ export default function MetaAds() {
                   <Card className="border-border bg-background"><CardContent className="p-4">
                     <div className={`flex items-center gap-2 mb-1 ${lucroMesSimples >= 0 ? "text-success" : "text-destructive"}`}><TrendingUp className="h-4 w-4" /><span className="text-xs">💰 Total Lucro</span></div>
                     <p className={`text-lg font-bold ${lucroMesSimples >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(lucroMesSimples)}</p>
-                  </Card></CardContent>
+                  </CardContent></Card>
                   <Card className="border-border bg-background"><CardContent className="p-4">
                     <div className="flex items-center gap-2 text-muted-foreground mb-1"><BarChart3 className="h-4 w-4" /><span className="text-xs">📈 ROI do Mês</span></div>
                     <p className={`text-lg font-bold ${roiMes >= 0 ? "text-success" : "text-destructive"}`}>{investidoMes > 0 ? `${roiMes.toFixed(1)}%` : "—"}</p>

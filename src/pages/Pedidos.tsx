@@ -285,6 +285,25 @@ export default function Pedidos() {
                               <Play className="h-4 w-4" />
                             </Button>
                           )}
+                          {p.status === "em_andamento" && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" title="Finalizar">
+                                  <CheckCircle2 className="h-4 w-4 text-success" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Finalizar pedido</AlertDialogTitle>
+                                  <AlertDialogDescription>Deseja marcar este pedido como finalizado?</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => markComplete(p.id)}>Finalizar</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(p)} title="Editar">
                             <Pencil className="h-4 w-4" />
                           </Button>

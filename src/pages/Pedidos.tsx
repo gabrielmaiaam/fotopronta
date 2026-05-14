@@ -10,7 +10,8 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Calendar as CalIcon, List, Play, Pencil, Trash2, Link2, Clock, TrendingUp, CalendarDays, SlidersHorizontal } from "lucide-react";
+import { Plus, Calendar as CalIcon, List, Play, Pencil, Trash2, Link2, Clock, TrendingUp, CalendarDays, SlidersHorizontal, CheckCircle2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format, differenceInMinutes, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -283,6 +284,25 @@ export default function Pedidos() {
                             <Button variant="ghost" size="icon" onClick={() => handleStart(p.id)} title="Iniciar">
                               <Play className="h-4 w-4" />
                             </Button>
+                          )}
+                          {p.status === "em_andamento" && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" title="Finalizar">
+                                  <CheckCircle2 className="h-4 w-4 text-success" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Finalizar pedido</AlertDialogTitle>
+                                  <AlertDialogDescription>Deseja marcar este pedido como finalizado?</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => markComplete(p.id)}>Finalizar</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           )}
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(p)} title="Editar">
                             <Pencil className="h-4 w-4" />

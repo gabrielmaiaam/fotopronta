@@ -20,6 +20,7 @@ import GaleriaPublica from "./pages/GaleriaPublica";
 import PreviaRapida from "./pages/PreviaRapida";
 import Indicacoes from "./pages/Indicacoes";
 import IndicacaoPublica from "./pages/IndicacaoPublica";
+import ComprovantePublico from "./pages/ComprovantePublico";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
           <Routes>
             <Route path="/galeria/:link" element={<GaleriaPublica />} />
             <Route path="/indicacao/:codigo" element={<IndicacaoPublica />} />
+            <Route path="/comprovante/:link" element={<ComprovantePublico />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>

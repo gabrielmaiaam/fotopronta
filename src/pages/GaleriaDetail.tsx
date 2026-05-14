@@ -233,7 +233,7 @@ export default function GaleriaDetail() {
             <WatermarkEditor
                 camadas={camadas}
                 onChange={setCamadas}
-                userId="uploads"
+                userId={userId}
                 compact
               />
             <Button size="sm" onClick={saveMarcaDagua} className="w-full">Salvar marca d'água</Button>

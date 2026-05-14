@@ -361,7 +361,7 @@ export default function Configuracoes() {
               <WatermarkEditor
                 camadas={camadas}
                 onChange={setCamadas}
-                userId="uploads"
+                userId={profile?.user_id || ""}
               />
               <div className="flex items-center gap-3 mt-4">
                 <Button onClick={saveMarcaDagua}>Salvar configurações de marca d'água</Button>

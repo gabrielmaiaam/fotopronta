@@ -20,6 +20,7 @@ import GaleriaPublica from "./pages/GaleriaPublica";
 import PreviaRapida from "./pages/PreviaRapida";
 import Indicacoes from "./pages/Indicacoes";
 import IndicacaoPublica from "./pages/IndicacaoPublica";
+import ComprovantePublico from "./pages/ComprovantePublico";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

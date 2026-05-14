@@ -1,56 +1,44 @@
-## Atualização da página Meta Ads
+## 1. Botão "Finalizar pedido" na tabela de Pedidos
 
-Adicionar colunas **Faturado** e **Lucro** à tabela "Lançamentos do mês" e 4 cards de totais no rodapé. Nada existente será removido.
+Em `src/pages/Pedidos.tsx`, na coluna **Ações**:
 
----
+- Adicionar botão com ícone `CheckCircle2` (lucide-react), exibido **somente quando `p.status === "em_andamento"`**.
+- Ao clicar, abrir um `AlertDialog` de confirmação com o texto:
+  > "Deseja marcar este pedido como finalizado?"
+  
+  Botões: **Cancelar** e **Finalizar** (destacado).
+- Ao confirmar: `update pedidos set status = 'finalizado' where id = ...`, recarregar lista e exibir toast.
+- Reordenar os ícones para: **✅ Finalizar | ✏️ Editar | 🗑️ Excluir | 🔗 Link** (mantendo o botão ▶️ Iniciar antes para status `aguardando`, já que ele faz parte do fluxo).
 
-### 1. Tabela "Lançamentos de [mês]"
+Comportamento já garantido pelo código existente:
+- `getCronometro` retorna `"—"` quando `status !== "em_andamento"` → cronômetro para sozinho.
+- `StatusBadge` já renderiza verde para `finalizado`.
+- O próprio condicional `status === "em_andamento"` faz o botão sumir após finalizar.
 
-Nova estrutura de colunas:
+## 2. Corrigir 404 dos links públicos
 
-```
-Data | Investido | Imposto (14%) | Faturado | Lucro | Ações
-```
+**Diagnóstico:**
+- `/galeria/:link` e `/indicacao/:codigo` **já estão corretamente registrados** em `src/App.tsx` fora do `ProtectedRoute`. O Lovable hosting faz SPA fallback automaticamente, então esses links **funcionam** — o 404 reportado nesses casos provavelmente vem de links antigos/com código inválido. Vou validar mantendo as rotas como estão.
+- **`/comprovante/:link` NÃO existe como rota.** O botão "Copiar link" em Pedidos copia `${origin}/comprovante/${link}`, mas não há `<Route path="/comprovante/:link">` em `App.tsx` nem página correspondente. Esse é o 404 real.
 
-- **Faturado (por dia)**: soma de `pagamentos.valor_pago` onde `status = 'pago'`, `pedidos.origem_cliente = 'meta_ads'` e a data do pagamento (`updated_at`/`created_at`) é igual à data do lançamento.
-- **Lucro (por dia)**: `Faturado − Investido` (sem subtrair imposto, conforme pedido). Verde se ≥ 0, vermelho se < 0.
-- A coluna "Retorno (mês)" atual (que repetia o total mensal em cada linha) será substituída pela coluna **Faturado** com cálculo correto por dia.
-- Manter botão de excluir na coluna **Ações**.
+**Correção:**
 
-### 2. Rodapé da tabela — 4 cards de totais do mês corrente
+1. Criar `src/pages/ComprovantePublico.tsx` — página pública (sem login) que:
+   - Lê `:link` da URL e busca em `pedidos` por `link_comprovante`.
+   - Mostra dados do pedido: cliente, serviço, valor, status atual com badge, data de criação, prazo de entrega, progresso e cronômetro (mesma lógica visual do dashboard interno, em layout mobile-first com tema escuro e branding "Foto Pronta").
+   - Se não encontrar, exibe mensagem "Comprovante não encontrado".
 
-```
-[💸 Total Investido] [💵 Total Faturado] [💰 Total Lucro] [📈 ROI do Mês]
-```
+2. Em `src/App.tsx`, adicionar a rota **fora do `ProtectedRoute`**, junto às outras públicas:
+   ```tsx
+   <Route path="/comprovante/:link" element={<ComprovantePublico />} />
+   ```
 
-- **Total Investido**: soma de `valor_investido` no mês.
-- **Total Faturado**: soma dos pagamentos Meta Ads no mês.
-- **Total Lucro**: `Total Faturado − Total Investido` (verde/vermelho).
-- **ROI do Mês**: `(Total Lucro ÷ Total Investido) × 100` (verde/vermelho; "—" se investido = 0).
+3. Confirmar que `galeria` e `indicacao` permanecem fora do `ProtectedRoute` (já estão).
 
-### 3. Filtro
+Não é necessário criar `_redirects`, `vercel.json` ou alterar `vite.config.ts` — o Lovable hosting já trata o SPA fallback no nível da infraestrutura.
 
-A página já filtra por mês corrente (`startOfMonth`/`endOfMonth`). Os novos cálculos usam o mesmo intervalo, então o filtro continuará funcionando para todas as colunas, incluindo Faturado e Lucro.
+## Arquivos afetados
 
-### 4. Preservado sem alteração
-
-- Cards de resumo do topo (6 cards: Investido, Imposto, Retorno, Lucro, ROI, ROAS).
-- Tabela "Histórico Mensal" com seletor 3/6/12 meses.
-- Card "Configuração" da taxa de imposto.
-- Modal "Registrar Investimento".
-
----
-
-### Detalhes técnicos
-
-- Arquivo único: `src/pages/MetaAds.tsx`.
-- Helper por dia:
-  ```ts
-  const faturadoNoDia = (dataISO: string) =>
-    pagamentos
-      .filter(p => p.pedidos?.origem_cliente === "meta_ads")
-      .filter(p => format(new Date(p.updated_at || p.created_at), "yyyy-MM-dd") === dataISO)
-      .reduce((s, p) => s + Number(p.valor_pago), 0);
-  ```
-- Cards de rodapé renderizados dentro do mesmo `<Card>` da tabela "Lançamentos", abaixo do `<Table>`, em `grid grid-cols-2 md:grid-cols-4 gap-3`.
-- Sem mudanças de schema, sem migrations.
+- `src/pages/Pedidos.tsx` (editar)
+- `src/pages/ComprovantePublico.tsx` (novo)
+- `src/App.tsx` (adicionar rota)

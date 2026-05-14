@@ -1,44 +1,52 @@
-## 1. Botão "Finalizar pedido" na tabela de Pedidos
+## Diagnóstico
 
-Em `src/pages/Pedidos.tsx`, na coluna **Ações**:
+As políticas RLS dos buckets `fotos` e `marca-dagua` exigem que o **primeiro segmento de pasta do arquivo seja `auth.uid()`**:
 
-- Adicionar botão com ícone `CheckCircle2` (lucide-react), exibido **somente quando `p.status === "em_andamento"`**.
-- Ao clicar, abrir um `AlertDialog` de confirmação com o texto:
-  > "Deseja marcar este pedido como finalizado?"
-  
-  Botões: **Cancelar** e **Finalizar** (destacado).
-- Ao confirmar: `update pedidos set status = 'finalizado' where id = ...`, recarregar lista e exibir toast.
-- Reordenar os ícones para: **✅ Finalizar | ✏️ Editar | 🗑️ Excluir | 🔗 Link** (mantendo o botão ▶️ Iniciar antes para status `aguardando`, já que ele faz parte do fluxo).
+```
+((bucket_id = 'fotos') AND ((auth.uid())::text = (storage.foldername(name))[1]))
+((bucket_id = 'marca-dagua') AND ((auth.uid())::text = (storage.foldername(name))[1]))
+```
 
-Comportamento já garantido pelo código existente:
-- `getCronometro` retorna `"—"` quando `status !== "em_andamento"` → cronômetro para sozinho.
-- `StatusBadge` já renderiza verde para `finalizado`.
-- O próprio condicional `status === "em_andamento"` faz o botão sumir após finalizar.
+Mas em três lugares estamos enviando arquivos com prefixo fixo `"uploads/..."`, o que viola a RLS e o upload é silenciosamente bloqueado:
 
-## 2. Corrigir 404 dos links públicos
+1. **`src/pages/GaleriaDetail.tsx`** linha 89 → `uploads/${id}/...` (upload de fotos da galeria)
+2. **`src/pages/GaleriaDetail.tsx`** linha 219 → `<WatermarkEditor userId="uploads" />` (logo da marca d'água dentro da galeria)
+3. **`src/pages/Configuracoes.tsx`** linha 364 → `<WatermarkEditor userId="uploads" />` (logo na aba Marca d'água das Configurações)
 
-**Diagnóstico:**
-- `/galeria/:link` e `/indicacao/:codigo` **já estão corretamente registrados** em `src/App.tsx` fora do `ProtectedRoute`. O Lovable hosting faz SPA fallback automaticamente, então esses links **funcionam** — o 404 reportado nesses casos provavelmente vem de links antigos/com código inválido. Vou validar mantendo as rotas como estão.
-- **`/comprovante/:link` NÃO existe como rota.** O botão "Copiar link" em Pedidos copia `${origin}/comprovante/${link}`, mas não há `<Route path="/comprovante/:link">` em `App.tsx` nem página correspondente. Esse é o 404 real.
+O bucket `fotos` é público e as policies de INSERT/SELECT estão corretas — basta corrigir o caminho.
 
-**Correção:**
+## Correções
 
-1. Criar `src/pages/ComprovantePublico.tsx` — página pública (sem login) que:
-   - Lê `:link` da URL e busca em `pedidos` por `link_comprovante`.
-   - Mostra dados do pedido: cliente, serviço, valor, status atual com badge, data de criação, prazo de entrega, progresso e cronômetro (mesma lógica visual do dashboard interno, em layout mobile-first com tema escuro e branding "Foto Pronta").
-   - Se não encontrar, exibe mensagem "Comprovante não encontrado".
+### 1. Upload de fotos da galeria (GaleriaDetail)
 
-2. Em `src/App.tsx`, adicionar a rota **fora do `ProtectedRoute`**, junto às outras públicas:
-   ```tsx
-   <Route path="/comprovante/:link" element={<ComprovantePublico />} />
-   ```
+- Obter `auth.uid()` no `loadData()` e guardar em estado.
+- Trocar o `filePath` para `${userId}/${galeriaId}/${uuid}.${ext}`.
+- Manter o `File` original sem qualquer compressão/transformação (já é o caso) e passar `contentType: file.type, cacheControl: '3600', upsert: false` para garantir entrega na resolução original.
+- Tratar erros corretamente (atualmente o toast de sucesso aparece mesmo quando todos falham — separar contagem de sucessos/falhas).
+- Recarregar grid após upload (já faz).
 
-3. Confirmar que `galeria` e `indicacao` permanecem fora do `ProtectedRoute` (já estão).
+### 2. Logo da marca d'água dentro da galeria
 
-Não é necessário criar `_redirects`, `vercel.json` ou alterar `vite.config.ts` — o Lovable hosting já trata o SPA fallback no nível da infraestrutura.
+- Passar o `auth.uid()` real para `<WatermarkEditor userId={userId} />` em vez de `"uploads"`.
+- Já carrega automaticamente as camadas salvas no `profiles.marca_dagua_camadas` via `migrateLegacyWatermark` (linha 81), então uma logo enviada uma vez aparece em todas as galerias.
+- O botão "Salvar marca d'água" já persiste no `profiles` — manter.
 
-## Arquivos afetados
+### 3. Logo na aba Marca d'água das Configurações
 
-- `src/pages/Pedidos.tsx` (editar)
-- `src/pages/ComprovantePublico.tsx` (novo)
-- `src/App.tsx` (adicionar rota)
+- Passar o `auth.uid()` real para `<WatermarkEditor userId={userId} />` em vez de `"uploads"`.
+- O `saveMarcaDagua` já grava `marca_dagua_camadas` no profile (a mesma fonte que o GaleriaDetail lê), então a logo aparece automaticamente em cada galeria nova.
+
+## Arquivos a editar
+
+- `src/pages/GaleriaDetail.tsx` — adicionar carregamento do `userId`, corrigir `filePath` do `handleUpload`, passar `userId` real ao `WatermarkEditor`.
+- `src/pages/Configuracoes.tsx` — adicionar carregamento do `userId` e passar ao `WatermarkEditor`.
+
+## Banco / Storage
+
+Nenhuma migração necessária. Buckets e policies já estão corretos:
+- `fotos` (público) → INSERT/SELECT/DELETE por usuário OK
+- `marca-dagua` (público) → INSERT/SELECT/UPDATE/DELETE por usuário OK
+
+## Resolução original das fotos
+
+O Supabase Storage **não comprime nem redimensiona** arquivos no upload — o que entra é o que sai. O `<input type="file">` também não toca o arquivo. Vamos apenas garantir `contentType: file.type` no `upload()` para servir com o mime correto e não há nenhum `<canvas>` ou redimensionamento no caminho.

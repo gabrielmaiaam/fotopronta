@@ -61,16 +61,23 @@ export default function GaleriaDetail() {
   const [camadas, setCamadas] = useState<WatermarkLayer[]>([]);
   const [chavePix, setChavePix] = useState("");
   const [precoAvulso, setPrecoAvulso] = useState("");
+  const [userId, setUserId] = useState<string>("");
 
   useEffect(() => {
     if (id) loadData();
   }, [id]);
 
   const loadData = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const uid = user?.id || "";
+    setUserId(uid);
+
     const [{ data: g }, { data: f }, { data: p }] = await Promise.all([
       supabase.from("galerias").select("*, clientes(nome)").eq("id", id!).single(),
       supabase.from("fotos").select("*").eq("galeria_id", id!).order("created_at", { ascending: true }),
-      supabase.from("profiles").select("*").limit(1).single(),
+      uid
+        ? supabase.from("profiles").select("*").eq("user_id", uid).maybeSingle()
+        : Promise.resolve({ data: null } as any),
     ]);
 
     setGaleria(g);
@@ -84,15 +91,25 @@ export default function GaleriaDetail() {
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !id) return;
+    if (!userId) { toast.error("Sessão expirada. Faça login novamente."); return; }
     setUploading(true);
+    let ok = 0, fail = 0;
     for (const file of Array.from(e.target.files)) {
-      const filePath = `uploads/${id}/${crypto.randomUUID()}.${file.name.split(".").pop()}`;
-      const { error: uploadError } = await supabase.storage.from("fotos").upload(filePath, file);
-      if (uploadError) { toast.error(`Erro ao enviar ${file.name}`); continue; }
+      const ext = file.name.split(".").pop() || "jpg";
+      const filePath = `${userId}/${id}/${crypto.randomUUID()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("fotos")
+        .upload(filePath, file, { contentType: file.type, cacheControl: "3600", upsert: false });
+      if (uploadError) { console.error(uploadError); toast.error(`Erro ao enviar ${file.name}: ${uploadError.message}`); fail++; continue; }
       const { data: { publicUrl } } = supabase.storage.from("fotos").getPublicUrl(filePath);
-      await supabase.from("fotos").insert({ galeria_id: id, url: publicUrl });
+      const { error: insErr } = await supabase.from("fotos").insert({ galeria_id: id, url: publicUrl });
+      if (insErr) { fail++; continue; }
+      ok++;
     }
-    toast.success("Fotos enviadas!");
+    if (ok > 0) toast.success(`${ok} foto(s) enviada(s)!`);
+    if (ok === 0 && fail > 0) toast.error("Nenhuma foto foi enviada.");
+    // Reset input so re-selecting same file works
+    e.target.value = "";
     setUploading(false);
     loadData();
   };

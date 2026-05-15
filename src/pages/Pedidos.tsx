@@ -398,17 +398,7 @@ export default function Pedidos() {
                 <Label>Pacote</Label>
                 <Select
                   value={form.pacote || "__none__"}
-                  onValueChange={(v) => {
-                    if (v === "__none__") {
-                      setForm({ ...form, pacote: "" });
-                    } else {
-                      setForm({
-                        ...form,
-                        pacote: v,
-                        servico: form.servico.trim() ? form.servico : v,
-                      });
-                    }
-                  }}
+                  onValueChange={(v) => setForm({ ...form, pacote: v === "__none__" ? "" : v })}
                 >
                   <SelectTrigger className="bg-input border-border"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -428,7 +418,7 @@ export default function Pedidos() {
             </div>
             <div className="space-y-2">
               <Label>Data e hora de entrega</Label>
-              <Input type="datetime-local" value={form.data_entrega} onChange={(e) => setForm({ ...form, data_entrega: e.target.value })} className="bg-input border-border" />
+              <DateTimePicker value={form.data_entrega} onChange={(v) => setForm({ ...form, data_entrega: v })} />
             </div>
             <div className="space-y-2">
               <Label>Origem do cliente *</Label>
@@ -490,7 +480,7 @@ export default function Pedidos() {
               </div>
               <div className="space-y-2">
                 <Label>Data e hora de entrega</Label>
-                <Input type="datetime-local" value={editForm.data_entrega} onChange={(e) => setEditForm({ ...editForm, data_entrega: e.target.value })} className="bg-input border-border" />
+                <DateTimePicker value={editForm.data_entrega} onChange={(v) => setEditForm({ ...editForm, data_entrega: v })} />
               </div>
               <div className="space-y-2">
                 <Label>Origem do cliente *</Label>

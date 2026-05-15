@@ -263,6 +263,7 @@ export default function Pedidos() {
                     <TableHead>Entrega</TableHead>
                     <TableHead>Progresso</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Pagamento</TableHead>
                     <TableHead>Cronômetro</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
@@ -281,10 +282,21 @@ export default function Pedidos() {
                       </TableCell>
                       <TableCell><StatusBadge status={p.status} /></TableCell>
                       <TableCell>
+                        {(() => {
+                          const ps = p.pagamentos?.[0]?.status;
+                          if (ps === "pago") return <Badge className="bg-success/20 text-success border-success/30 border">🟢 Pago integral</Badge>;
+                          if (ps === "parcial") return <Badge className="bg-warning/20 text-warning border-warning/30 border">🟡 Entrada recebida</Badge>;
+                          return <Badge className="bg-destructive/20 text-destructive border-destructive/30 border">🔴 Não pago</Badge>;
+                        })()}
+                      </TableCell>
+                      <TableCell>
                         <span className="text-xs font-mono text-muted-foreground">{getCronometro(p)}</span>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => { setDetailPedido(p); setDetailOpen(true); }} title="Detalhes">
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           {p.status === "aguardando" && (
                             <Button variant="ghost" size="icon" onClick={() => handleStart(p.id)} title="Iniciar">
                               <Play className="h-4 w-4" />
@@ -324,7 +336,7 @@ export default function Pedidos() {
                       </TableCell>
                     </TableRow>
                   )) : (
-                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum pedido</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum pedido</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>

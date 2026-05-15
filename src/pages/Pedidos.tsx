@@ -10,11 +10,14 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Calendar as CalIcon, List, Play, Pencil, Trash2, Link2, Clock, TrendingUp, CalendarDays, SlidersHorizontal, CheckCircle2 } from "lucide-react";
+import { Plus, Calendar as CalIcon, List, Play, Pencil, Trash2, Link2, Clock, TrendingUp, CalendarDays, SlidersHorizontal, CheckCircle2, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format, differenceInMinutes, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { DateTimePicker } from "@/components/DateTimePicker";
+import { PagamentoSection } from "@/components/PagamentoSection";
+import { Badge } from "@/components/ui/badge";
 
 export default function Pedidos() {
   const { user } = useAuth();
@@ -25,6 +28,8 @@ export default function Pedidos() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailPedido, setDetailPedido] = useState<any>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [form, setForm] = useState({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "", pacote: "" });
   const [, setTick] = useState(0);
@@ -42,7 +47,7 @@ export default function Pedidos() {
   const loadPedidos = async () => {
     const { data } = await supabase
       .from("pedidos")
-      .select("*, clientes(nome)")
+      .select("*, clientes(nome), pagamentos(status, modo_pagamento)")
       .order("created_at", { ascending: false });
     setPedidos(data || []);
   };

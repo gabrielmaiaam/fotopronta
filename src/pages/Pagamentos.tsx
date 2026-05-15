@@ -483,6 +483,9 @@ export default function Pagamentos() {
                   <div className="text-right">
                     <p className="font-bold">{formatCurrency(Number(p.valor_total))}</p>
                     <p className="text-xs text-muted-foreground">Pago: {formatCurrency(Number(p.valor_pago))}</p>
+                    <Badge variant="outline" className="mt-1 text-[10px]">
+                      {(p as any).origem === "pix_auto" ? "PIX automático" : "Confirmado manualmente"}
+                    </Badge>
                   </div>
                   <StatusBadge status={p.status} />
                   {p.status === "pendente" && (

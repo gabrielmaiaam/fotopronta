@@ -10,11 +10,14 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Calendar as CalIcon, List, Play, Pencil, Trash2, Link2, Clock, TrendingUp, CalendarDays, SlidersHorizontal, CheckCircle2 } from "lucide-react";
+import { Plus, Calendar as CalIcon, List, Play, Pencil, Trash2, Link2, Clock, TrendingUp, CalendarDays, SlidersHorizontal, CheckCircle2, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format, differenceInMinutes, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { DateTimePicker } from "@/components/DateTimePicker";
+import { PagamentoSection } from "@/components/PagamentoSection";
+import { Badge } from "@/components/ui/badge";
 
 export default function Pedidos() {
   const { user } = useAuth();
@@ -25,6 +28,8 @@ export default function Pedidos() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailPedido, setDetailPedido] = useState<any>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [form, setForm] = useState({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "", pacote: "" });
   const [, setTick] = useState(0);
@@ -42,7 +47,7 @@ export default function Pedidos() {
   const loadPedidos = async () => {
     const { data } = await supabase
       .from("pedidos")
-      .select("*, clientes(nome)")
+      .select("*, clientes(nome), pagamentos(status, modo_pagamento)")
       .order("created_at", { ascending: false });
     setPedidos(data || []);
   };
@@ -258,6 +263,7 @@ export default function Pedidos() {
                     <TableHead>Entrega</TableHead>
                     <TableHead>Progresso</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Pagamento</TableHead>
                     <TableHead>Cronômetro</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
@@ -276,10 +282,21 @@ export default function Pedidos() {
                       </TableCell>
                       <TableCell><StatusBadge status={p.status} /></TableCell>
                       <TableCell>
+                        {(() => {
+                          const ps = p.pagamentos?.[0]?.status;
+                          if (ps === "pago") return <Badge className="bg-success/20 text-success border-success/30 border">🟢 Pago integral</Badge>;
+                          if (ps === "parcial") return <Badge className="bg-warning/20 text-warning border-warning/30 border">🟡 Entrada recebida</Badge>;
+                          return <Badge className="bg-destructive/20 text-destructive border-destructive/30 border">🔴 Não pago</Badge>;
+                        })()}
+                      </TableCell>
+                      <TableCell>
                         <span className="text-xs font-mono text-muted-foreground">{getCronometro(p)}</span>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => { setDetailPedido(p); setDetailOpen(true); }} title="Detalhes">
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           {p.status === "aguardando" && (
                             <Button variant="ghost" size="icon" onClick={() => handleStart(p.id)} title="Iniciar">
                               <Play className="h-4 w-4" />
@@ -319,7 +336,7 @@ export default function Pedidos() {
                       </TableCell>
                     </TableRow>
                   )) : (
-                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum pedido</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum pedido</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -381,17 +398,7 @@ export default function Pedidos() {
                 <Label>Pacote</Label>
                 <Select
                   value={form.pacote || "__none__"}
-                  onValueChange={(v) => {
-                    if (v === "__none__") {
-                      setForm({ ...form, pacote: "" });
-                    } else {
-                      setForm({
-                        ...form,
-                        pacote: v,
-                        servico: form.servico.trim() ? form.servico : v,
-                      });
-                    }
-                  }}
+                  onValueChange={(v) => setForm({ ...form, pacote: v === "__none__" ? "" : v })}
                 >
                   <SelectTrigger className="bg-input border-border"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -411,7 +418,7 @@ export default function Pedidos() {
             </div>
             <div className="space-y-2">
               <Label>Data e hora de entrega</Label>
-              <Input type="datetime-local" value={form.data_entrega} onChange={(e) => setForm({ ...form, data_entrega: e.target.value })} className="bg-input border-border" />
+              <DateTimePicker value={form.data_entrega} onChange={(v) => setForm({ ...form, data_entrega: v })} />
             </div>
             <div className="space-y-2">
               <Label>Origem do cliente *</Label>
@@ -473,7 +480,7 @@ export default function Pedidos() {
               </div>
               <div className="space-y-2">
                 <Label>Data e hora de entrega</Label>
-                <Input type="datetime-local" value={editForm.data_entrega} onChange={(e) => setEditForm({ ...editForm, data_entrega: e.target.value })} className="bg-input border-border" />
+                <DateTimePicker value={editForm.data_entrega} onChange={(v) => setEditForm({ ...editForm, data_entrega: v })} />
               </div>
               <div className="space-y-2">
                 <Label>Origem do cliente *</Label>
@@ -493,6 +500,29 @@ export default function Pedidos() {
           <DialogFooter>
             <Button onClick={handleEditSave} className="w-full">Salvar</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail Modal */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="font-display">Detalhes do Pedido</DialogTitle></DialogHeader>
+          {detailPedido && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><p className="text-xs text-muted-foreground">Cliente</p><p className="font-medium">{detailPedido.clientes?.nome}</p></div>
+                <div><p className="text-xs text-muted-foreground">Serviço</p><p className="font-medium">{detailPedido.servico}</p></div>
+                {detailPedido.pacote && <div><p className="text-xs text-muted-foreground">Pacote</p><p className="font-medium">{detailPedido.pacote}</p></div>}
+                <div><p className="text-xs text-muted-foreground">Status</p><StatusBadge status={detailPedido.status} /></div>
+                {detailPedido.data_entrega && <div className="col-span-2"><p className="text-xs text-muted-foreground">Entrega</p><p className="font-medium">{format(new Date(detailPedido.data_entrega), "dd/MM/yyyy HH:mm")}</p></div>}
+              </div>
+              <PagamentoSection
+                pedido={detailPedido}
+                defaultValor={Number(pacotes.find(pp => pp.nome === detailPedido.pacote)?.preco || 0)}
+                onChanged={loadPedidos}
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

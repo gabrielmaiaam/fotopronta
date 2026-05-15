@@ -1,52 +1,92 @@
-## Diagnóstico
 
-As políticas RLS dos buckets `fotos` e `marca-dagua` exigem que o **primeiro segmento de pasta do arquivo seja `auth.uid()`**:
+# Ajustes em Pedidos e Pagamentos
 
-```
-((bucket_id = 'fotos') AND ((auth.uid())::text = (storage.foldername(name))[1]))
-((bucket_id = 'marca-dagua') AND ((auth.uid())::text = (storage.foldername(name))[1]))
-```
+## Parte 1 — Modal de Criar/Editar Pedido (`src/pages/Pedidos.tsx`)
 
-Mas em três lugares estamos enviando arquivos com prefixo fixo `"uploads/..."`, o que viola a RLS e o upload é silenciosamente bloqueado:
+### 1.1 Não copiar nome do pacote para Serviço
+No `onValueChange` do Select de Pacote (linhas 384-394), remover a atribuição `servico: form.servico.trim() ? form.servico : v`. O campo Serviço passa a ser sempre digitado manualmente.
 
-1. **`src/pages/GaleriaDetail.tsx`** linha 89 → `uploads/${id}/...` (upload de fotos da galeria)
-2. **`src/pages/GaleriaDetail.tsx`** linha 219 → `<WatermarkEditor userId="uploads" />` (logo da marca d'água dentro da galeria)
-3. **`src/pages/Configuracoes.tsx`** linha 364 → `<WatermarkEditor userId="uploads" />` (logo na aba Marca d'água das Configurações)
+### 1.2 Campo Data e Hora — usabilidade
+Substituir o único `<Input type="datetime-local">` por dois inputs lado a lado:
 
-O bucket `fotos` é público e as policies de INSERT/SELECT estão corretas — basta corrigir o caminho.
+- **Data** (`type="date"`) com botão 📅 ao lado abrindo `Popover` + `Calendar` (shadcn) para escolha visual.
+- **Hora** (`type="time"`) com botão 🕐 ao lado abrindo `Popover` com duas listas roláveis: horas (00–23) e minutos (00, 15, 30, 45).
+- Auto-tab: ao completar 4 dígitos no ano (campo data), focar automaticamente no campo de hora (`useRef` + `onChange` checando `value.length === 10`).
+- Internamente combinar `data + hora` no submit em ISO antes de salvar `data_entrega`.
 
-## Correções
+Aplicar a mesma estrutura no modal de **Editar Pedido**.
 
-### 1. Upload de fotos da galeria (GaleriaDetail)
+## Parte 2 — Comprovante Público (`src/pages/ComprovantePublico.tsx`)
 
-- Obter `auth.uid()` no `loadData()` e guardar em estado.
-- Trocar o `filePath` para `${userId}/${galeriaId}/${uuid}.${ext}`.
-- Manter o `File` original sem qualquer compressão/transformação (já é o caso) e passar `contentType: file.type, cacheControl: '3600', upsert: false` para garantir entrega na resolução original.
-- Tratar erros corretamente (atualmente o toast de sucesso aparece mesmo quando todos falham — separar contagem de sucessos/falhas).
-- Recarregar grid após upload (já faz).
+Buscar o pacote correspondente por nome para enriquecer a tela:
 
-### 2. Logo da marca d'água dentro da galeria
+- Após carregar o pedido, se `pedido.pacote` existir, query: `supabase.from("pacotes").select("nome, preco, quantidade_fotos, icone").eq("nome", pedido.pacote).eq("user_id", pedido.user_id).maybeSingle()`.
+- Adicionar bloco "Pacote adquirido" no card mostrando: nome (com ícone), valor formatado em R$ e "X fotos incluídas".
 
-- Passar o `auth.uid()` real para `<WatermarkEditor userId={userId} />` em vez de `"uploads"`.
-- Já carrega automaticamente as camadas salvas no `profiles.marca_dagua_camadas` via `migrateLegacyWatermark` (linha 81), então uma logo enviada uma vez aparece em todas as galerias.
-- O botão "Salvar marca d'água" já persiste no `profiles` — manter.
+## Parte 3 — Schema (migration)
 
-### 3. Logo na aba Marca d'água das Configurações
+Adicionar colunas em `public.pagamentos`:
 
-- Passar o `auth.uid()` real para `<WatermarkEditor userId={userId} />` em vez de `"uploads"`.
-- O `saveMarcaDagua` já grava `marca_dagua_camadas` no profile (a mesma fonte que o GaleriaDetail lê), então a logo aparece automaticamente em cada galeria nova.
+- `modo_pagamento text not null default 'entrada_saldo'` — valores `entrada_saldo` ou `total_antecipado`
+- `percentual_entrada numeric not null default 50`
+- `entrada_paga_em timestamptz`
+- `saldo_pago_em timestamptz`
+- `origem text not null default 'manual'` — `pix_auto` ou `manual`
 
-## Arquivos a editar
+Sem mudança em RLS (já existe `Users manage own payments`).
 
-- `src/pages/GaleriaDetail.tsx` — adicionar carregamento do `userId`, corrigir `filePath` do `handleUpload`, passar `userId` real ao `WatermarkEditor`.
-- `src/pages/Configuracoes.tsx` — adicionar carregamento do `userId` e passar ao `WatermarkEditor`.
+## Parte 4 — Seção "Pagamento" no detalhe do Pedido (`src/pages/Pedidos.tsx`)
 
-## Banco / Storage
+### 4.1 Modal de detalhes
+Hoje só existem modais Criar/Editar. Criar um **novo modal "Detalhes do Pedido"** acionado por um ícone 👁️ na coluna Ações (sem remover os existentes), exibindo dados do pedido e a nova seção Pagamento.
 
-Nenhuma migração necessária. Buckets e policies já estão corretos:
-- `fotos` (público) → INSERT/SELECT/DELETE por usuário OK
-- `marca-dagua` (público) → INSERT/SELECT/UPDATE/DELETE por usuário OK
+### 4.2 Lógica do Pagamento
+Ao abrir o modal:
 
-## Resolução original das fotos
+- Buscar `pagamentos` pelo `pedido_id`. Se não existir, **upsert** com `valor_total` = preço do pacote vinculado (ou 0), `status='pendente'`, `modo_pagamento='entrada_saldo'`, `percentual_entrada=50`, `origem='manual'`.
 
-O Supabase Storage **não comprime nem redimensiona** arquivos no upload — o que entra é o que sai. O `<input type="file">` também não toca o arquivo. Vamos apenas garantir `contentType: file.type` no `upload()` para servir com o mime correto e não há nenhum `<canvas>` ou redimensionamento no caminho.
+UI:
+- Toggle "Pagamento total antecipado" → alterna `modo_pagamento`.
+- Campo "Valor total (R$)" sempre editável (salvo via onBlur).
+- **Modo `entrada_saldo`:**
+  - Campo "Entrada (%)" editável (default 50).
+  - Linhas calculadas: Entrada = total × %, Saldo = total − entrada.
+  - **Etapa 1 — Entrada:** badge (🔴 Pendente / 🟢 Recebido). Botão "✅ Confirmar entrada de R$ X" → `AlertDialog` de confirmação → on confirm: `valor_pago = entrada`, `status = 'parcial'`, `entrada_paga_em = now()`, `origem = 'manual'`.
+  - **Etapa 2 — Saldo:** só renderiza após `entrada_paga_em` setado. Badge + botão "✅ Confirmar saldo de R$ X" → confirma → `valor_pago = valor_total`, `status = 'pago'`, `saldo_pago_em = now()`.
+- **Modo `total_antecipado`:**
+  - Esconde etapas. Badge + botão "✅ Confirmar pagamento total de R$ X" → confirma → `valor_pago = valor_total`, `status = 'pago'`, `entrada_paga_em = saldo_pago_em = now()`, `origem='manual'`.
+
+Como `pagamentos` já é a fonte do Financeiro (`receitaMes` filtra `status='pago'`), a integração com o módulo Financeiro é automática — nenhum código adicional.
+
+## Parte 5 — Lista de Pedidos: badge de status de pagamento
+
+Na tabela (`src/pages/Pedidos.tsx`):
+
+- No `loadPedidos`, incluir `pagamentos(status, modo_pagamento)` no select.
+- Adicionar coluna **"Pagamento"** entre Status e Cronômetro, mostrando:
+  - 🔴 Não pago — `status='pendente'` ou sem pagamento
+  - 🟡 Entrada recebida (50%) — `status='parcial'`
+  - 🟢 Pago integral — `status='pago'`
+
+## Parte 6 — Página Financeiro (`src/pages/Pagamentos.tsx`)
+
+Pequeno ajuste apenas: no histórico de pagamentos (linha 471+), exibir badge da origem ao lado do StatusBadge:
+- "PIX automático" se `origem='pix_auto'`
+- "Confirmado manualmente" se `origem='manual'`
+
+Os botões existentes "50% Inicial / 50% Final" continuam funcionando (passam a também setar `entrada_paga_em` / `saldo_pago_em` e `origem='manual'` para consistência).
+
+## Detalhes técnicos
+
+- Calendário: `Popover` + `Calendar` shadcn já disponíveis (`@/components/ui/calendar`, `@/components/ui/popover`), classe `pointer-events-auto`.
+- Time picker custom: `Popover` com dois `ScrollArea` lado a lado renderizando botões para horas/minutos.
+- Persistência das mudanças do pagamento usa `supabase.from("pagamentos").upsert(...)` com `onConflict: "pedido_id"` (ou select-then-insert/update se upsert exigir unique).
+- Adicionar índice/constraint? Não — apenas garantir que cada pedido tenha no máximo 1 pagamento via lógica do app.
+- Tipos do Supabase serão regenerados automaticamente após a migration.
+
+## Arquivos afetados
+
+- Migration nova (colunas em `pagamentos`)
+- `src/pages/Pedidos.tsx` — ajustes no modal criar/editar, novo modal de detalhes, coluna Pagamento, novo TimePicker inline
+- `src/pages/ComprovantePublico.tsx` — bloco do pacote
+- `src/pages/Pagamentos.tsx` — badge de origem; etapas escrevem timestamps

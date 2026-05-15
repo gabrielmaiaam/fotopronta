@@ -363,8 +363,13 @@ export type Database = {
         Row: {
           cliente_id: string
           created_at: string
+          entrada_paga_em: string | null
           id: string
+          modo_pagamento: string
+          origem: string
           pedido_id: string | null
+          percentual_entrada: number
+          saldo_pago_em: string | null
           status: string
           updated_at: string
           user_id: string
@@ -374,8 +379,13 @@ export type Database = {
         Insert: {
           cliente_id: string
           created_at?: string
+          entrada_paga_em?: string | null
           id?: string
+          modo_pagamento?: string
+          origem?: string
           pedido_id?: string | null
+          percentual_entrada?: number
+          saldo_pago_em?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -385,8 +395,13 @@ export type Database = {
         Update: {
           cliente_id?: string
           created_at?: string
+          entrada_paga_em?: string | null
           id?: string
+          modo_pagamento?: string
+          origem?: string
           pedido_id?: string | null
+          percentual_entrada?: number
+          saldo_pago_em?: string | null
           status?: string
           updated_at?: string
           user_id?: string

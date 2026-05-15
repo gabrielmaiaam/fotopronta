@@ -502,6 +502,29 @@ export default function Pedidos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Detail Modal */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="font-display">Detalhes do Pedido</DialogTitle></DialogHeader>
+          {detailPedido && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><p className="text-xs text-muted-foreground">Cliente</p><p className="font-medium">{detailPedido.clientes?.nome}</p></div>
+                <div><p className="text-xs text-muted-foreground">Serviço</p><p className="font-medium">{detailPedido.servico}</p></div>
+                {detailPedido.pacote && <div><p className="text-xs text-muted-foreground">Pacote</p><p className="font-medium">{detailPedido.pacote}</p></div>}
+                <div><p className="text-xs text-muted-foreground">Status</p><StatusBadge status={detailPedido.status} /></div>
+                {detailPedido.data_entrega && <div className="col-span-2"><p className="text-xs text-muted-foreground">Entrega</p><p className="font-medium">{format(new Date(detailPedido.data_entrega), "dd/MM/yyyy HH:mm")}</p></div>}
+              </div>
+              <PagamentoSection
+                pedido={detailPedido}
+                defaultValor={Number(pacotes.find(pp => pp.nome === detailPedido.pacote)?.preco || 0)}
+                onChanged={loadPedidos}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -143,7 +143,10 @@ export default function Pagamentos() {
     const metade = Number(pag.valor_total) / 2;
     const newPago = etapa === "primeira" ? metade : Number(pag.valor_total);
     const newStatus = etapa === "primeira" ? "parcial" : "pago";
-    await supabase.from("pagamentos").update({ valor_pago: newPago, status: newStatus }).eq("id", pag.id);
+    const patch: any = { valor_pago: newPago, status: newStatus, origem: "manual" };
+    if (etapa === "primeira") patch.entrada_paga_em = new Date().toISOString();
+    else patch.saldo_pago_em = new Date().toISOString();
+    await supabase.from("pagamentos").update(patch).eq("id", pag.id);
     toast.success(etapa === "primeira" ? "1ª etapa registrada!" : "Pagamento completo!");
     loadAll();
   };

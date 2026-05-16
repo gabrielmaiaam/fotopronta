@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Camera, Loader2, Clock, CalendarDays } from "lucide-react";
+import { Camera, Loader2, CalendarDays } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusBadge } from "@/components/StatusBadge";
 import { format, differenceInMinutes } from "date-fns";
@@ -128,10 +128,7 @@ export default function ComprovantePublico() {
               </span>
             </div>
           )}
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground text-sm flex items-center gap-1"><Clock className="h-3 w-3" /> Cronômetro</span>
-            <span className="font-mono text-sm text-foreground">{cronometro}</span>
-          </div>
+          
         </div>
 
         <p className="text-xs text-muted-foreground text-center pt-2 border-t border-border">

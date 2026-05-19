@@ -36,6 +36,7 @@ export default function Clientes() {
   const [corSelecionada, setCorSelecionada] = useState(CORES[0]);
   const [clienteEtiquetas, setClienteEtiquetas] = useState<Record<string, string[]>>({});
   const [editEtiquetasSelecionadas, setEditEtiquetasSelecionadas] = useState<string[]>([]);
+  const [ordenacao, setOrdenacao] = useState<"mais_novo" | "mais_antigo">("mais_novo");
 
   useEffect(() => {
     loadClientes();
@@ -91,9 +92,12 @@ export default function Clientes() {
     loadClientes();
   };
 
-  const filtered = clientes.filter((c) =>
-    c.nome.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = clientes
+    .filter((c) => c.nome.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      return ordenacao === "mais_novo" ? -diff : diff;
+    });
 
   const openNew = () => {
     setEditing(null);
@@ -243,7 +247,22 @@ export default function Clientes() {
           </CardContent>
         </Card>
       )}
-
+<div className="flex gap-2">
+        <Button
+          variant={ordenacao === "mais_novo" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setOrdenacao("mais_novo")}
+        >
+          Mais novo
+        </Button>
+        <Button
+          variant={ordenacao === "mais_antigo" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setOrdenacao("mais_antigo")}
+        >
+          Mais antigo
+        </Button>
+      </div>
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input

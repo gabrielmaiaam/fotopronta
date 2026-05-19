@@ -36,7 +36,7 @@ export default function Pedidos() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailPedido, setDetailPedido] = useState<any>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
-  const [form, setForm] = useState<any>({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "", pacote: "", valor: "", pagamento_status: "pendente" });
+  const [form, setForm] = useState<any>({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "", pacote: "", valor: "", pagamento_status: "pendente", data_cadastro: "" });
   const [togglePed, setTogglePed] = useState<any>(null);
   const [, setTick] = useState(0);
 
@@ -125,6 +125,7 @@ export default function Pedidos() {
       tempo_estimado_minutos: tempoEstimado,
       link_comprovante: linkComprovante,
       origem_cliente: form.origem_cliente,
+      ...(form.data_cadastro ? { created_at: new Date(`${form.data_cadastro}T12:00:00`).toISOString() } : {}),
     } as any).select().single();
     if (error || !inserted) { toast.error(error?.message || "Erro"); return; }
     await upsertPagamento({ ...inserted, pagamentos: [] }, form.pagamento_status, valorNum);
@@ -305,7 +306,7 @@ export default function Pedidos() {
           <h1 className="text-2xl font-display font-bold">Pedidos</h1>
           <p className="text-sm text-muted-foreground">Gerencie seus pedidos e acompanhe o progresso</p>
         </div>
-        <Button onClick={() => { setForm({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "", pacote: "", valor: "", pagamento_status: "pendente" }); setModalOpen(true); }}>
+        <Button onClick={() => { setForm({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "", pacote: "", valor: "", pagamento_status: "pendente", data_cadastro: "" }); setModalOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Novo Pedido
         </Button>
       </div>
@@ -556,6 +557,15 @@ export default function Pedidos() {
             <div className="space-y-2">
               <Label>Pagamento</Label>
               <PagToggle value={form.pagamento_status} onChange={(v) => setForm({ ...form, pagamento_status: v })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Data do pedido</Label>
+              <Input
+                type="date"
+                value={form.data_cadastro}
+                onChange={(e) => setForm({ ...form, data_cadastro: e.target.value })}
+                className="bg-input border-border"
+              />
             </div>
             <p className="text-xs text-muted-foreground">⏱ O tempo estimado será calculado automaticamente ao iniciar o pedido.</p>
           </div>

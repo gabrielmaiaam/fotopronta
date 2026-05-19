@@ -384,7 +384,10 @@ export default function Pedidos() {
                 <TableBody>
                   {pedidos.length > 0 ? [...pedidos].sort((a, b) => {
                     const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-                    return ordenacao === "mais_novo" ? -diff : diff;
+                    if (diff !== 0) return ordenacao === "mais_novo" ? -diff : diff;
+                    return ordenacao === "mais_novo"
+                      ? b.id.localeCompare(a.id)
+                      : a.id.localeCompare(b.id);
                   }).map((p) => {
                     const pago = p.pagamentos?.[0]?.status === "pago";
                     return (

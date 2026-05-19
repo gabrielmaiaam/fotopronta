@@ -143,11 +143,13 @@ export default function Pedidos() {
     const pag = p.pagamentos?.[0];
     const status: "pago" | "pendente" = pag?.status === "pago" ? "pago" : "pendente";
     setEditOriginalPagStatus(status);
-    const valor = pag?.valor_total
-      ? Number(pag.valor_total).toFixed(2)
-      : (pacotes.find(pp => pp.nome === p.pacote)?.preco
-          ? Number(pacotes.find(pp => pp.nome === p.pacote)!.preco).toFixed(2)
-          : "");
+    const valor = p.valor != null
+      ? Number(p.valor).toFixed(2)
+      : (pag?.valor_total
+          ? Number(pag.valor_total).toFixed(2)
+          : (pacotes.find(pp => pp.nome === p.pacote)?.preco
+              ? Number(pacotes.find(pp => pp.nome === p.pacote)!.preco).toFixed(2)
+              : ""));
     setEditForm({
       id: p.id,
       user_id: p.user_id,

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,9 @@ import { ptBR } from "date-fns/locale";
 import { DateTimePicker } from "@/components/DateTimePicker";
 import { PagamentoSection } from "@/components/PagamentoSection";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+const fmtBRL = (v: number) => `R$ ${Number(v || 0).toFixed(2).replace(".", ",")}`;
 
 export default function Pedidos() {
   const { user } = useAuth();
@@ -28,13 +31,15 @@ export default function Pedidos() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
+  const [editOriginalPagStatus, setEditOriginalPagStatus] = useState<"pago" | "pendente">("pendente");
+  const [editConfirm, setEditConfirm] = useState<null | "to_pago" | "to_pendente">(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailPedido, setDetailPedido] = useState<any>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
-  const [form, setForm] = useState({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "", pacote: "" });
+  const [form, setForm] = useState<any>({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "", pacote: "", valor: "", pagamento_status: "pendente" });
+  const [togglePed, setTogglePed] = useState<any>(null);
   const [, setTick] = useState(0);
 
-  // Tick every 30s to update cronômetro
   useEffect(() => {
     const interval = setInterval(() => setTick(t => t + 1), 30000);
     return () => clearInterval(interval);
@@ -47,7 +52,7 @@ export default function Pedidos() {
   const loadPedidos = async () => {
     const { data } = await supabase
       .from("pedidos")
-      .select("*, clientes(nome), pagamentos(status, modo_pagamento)")
+      .select("*, clientes(nome), pagamentos(id, status, modo_pagamento, valor_total, valor_pago)")
       .order("created_at", { ascending: false });
     setPedidos(data || []);
   };
@@ -62,21 +67,55 @@ export default function Pedidos() {
     setPacotes((data as any[]) || []);
   };
 
+  const onPacoteChange = (v: string, target: "form" | "edit") => {
+    let pacote = "";
+    let valor: string | undefined;
+    if (v === "__none__") { pacote = ""; valor = ""; }
+    else if (v === "__outro__") { pacote = "Outro"; valor = ""; }
+    else {
+      pacote = v;
+      const p = pacotes.find((pp) => pp.nome === v);
+      valor = p ? Number(p.preco).toFixed(2) : "";
+    }
+    if (target === "form") setForm({ ...form, pacote, valor });
+    else setEditForm({ ...editForm, pacote, valor });
+  };
+
+  const upsertPagamento = async (pedido: any, status: "pago" | "pendente", valorTotal: number) => {
+    const now = new Date().toISOString();
+    const existing = pedido.pagamentos?.[0];
+    const payload: any = {
+      user_id: pedido.user_id,
+      cliente_id: pedido.cliente_id,
+      pedido_id: pedido.id,
+      valor_total: valorTotal,
+      modo_pagamento: "total_antecipado",
+      percentual_entrada: 100,
+      origem: "manual",
+      status,
+      valor_pago: status === "pago" ? valorTotal : 0,
+      entrada_paga_em: status === "pago" ? now : null,
+      saldo_pago_em: status === "pago" ? now : null,
+    };
+    if (existing?.id) {
+      const { error } = await supabase.from("pagamentos").update(payload).eq("id", existing.id);
+      if (error) toast.error(error.message);
+    } else {
+      const { error } = await supabase.from("pagamentos").insert(payload);
+      if (error) toast.error(error.message);
+    }
+  };
+
   const handleCreate = async () => {
-    if (!form.cliente_id || !form.servico.trim()) {
-      toast.error("Cliente e serviço são obrigatórios");
-      return;
-    }
-    if (!form.origem_cliente) {
-      toast.error("Selecione a origem do cliente");
-      return;
-    }
+    if (!form.cliente_id || !form.servico.trim()) { toast.error("Cliente e serviço são obrigatórios"); return; }
+    if (!form.origem_cliente) { toast.error("Selecione a origem do cliente"); return; }
+    if (!user) { toast.error("Sessão expirada"); return; }
     const linkComprovante = crypto.randomUUID().slice(0, 8);
     const tempoEstimado = form.data_entrega
       ? Math.max(differenceInMinutes(new Date(form.data_entrega), new Date()), 1)
       : 120;
-    if (!user) { toast.error("Sessão expirada"); return; }
-    const { error } = await supabase.from("pedidos").insert({
+    const valorNum = Number(String(form.valor).replace(",", ".")) || 0;
+    const { data: inserted, error } = await supabase.from("pedidos").insert({
       user_id: user.id,
       cliente_id: form.cliente_id,
       servico: form.servico,
@@ -85,8 +124,9 @@ export default function Pedidos() {
       tempo_estimado_minutos: tempoEstimado,
       link_comprovante: linkComprovante,
       origem_cliente: form.origem_cliente,
-    });
-    if (error) { toast.error(error.message); return; }
+    }).select().single();
+    if (error || !inserted) { toast.error(error?.message || "Erro"); return; }
+    await upsertPagamento({ ...inserted, pagamentos: [] }, form.pagamento_status, valorNum);
     toast.success("Pedido criado!");
     setModalOpen(false);
     loadPedidos();
@@ -99,23 +139,31 @@ export default function Pedidos() {
   };
 
   const handleEdit = (p: any) => {
+    const pag = p.pagamentos?.[0];
+    const status: "pago" | "pendente" = pag?.status === "pago" ? "pago" : "pendente";
+    setEditOriginalPagStatus(status);
+    const valor = pag?.valor_total
+      ? Number(pag.valor_total).toFixed(2)
+      : (pacotes.find(pp => pp.nome === p.pacote)?.preco
+          ? Number(pacotes.find(pp => pp.nome === p.pacote)!.preco).toFixed(2)
+          : "");
     setEditForm({
       id: p.id,
+      user_id: p.user_id,
       cliente_id: p.cliente_id,
       servico: p.servico,
       pacote: p.pacote || "",
+      valor,
       data_entrega: p.data_entrega ? format(new Date(p.data_entrega), "yyyy-MM-dd'T'HH:mm") : "",
       origem_cliente: p.origem_cliente || "",
+      pagamento_status: status,
+      pagamentos: p.pagamentos || [],
+      clientes: p.clientes,
     });
     setEditModalOpen(true);
   };
 
-  const handleEditSave = async () => {
-    if (!editForm) return;
-    if (!editForm.origem_cliente) {
-      toast.error("Selecione a origem do cliente");
-      return;
-    }
+  const persistEdit = async () => {
     const tempoEstimado = editForm.data_entrega
       ? Math.max(differenceInMinutes(new Date(editForm.data_entrega), new Date()), 1)
       : 120;
@@ -128,9 +176,25 @@ export default function Pedidos() {
       origem_cliente: editForm.origem_cliente,
     }).eq("id", editForm.id);
     if (error) { toast.error(error.message); return; }
+    const valorNum = Number(String(editForm.valor).replace(",", ".")) || 0;
+    await upsertPagamento(
+      { id: editForm.id, user_id: editForm.user_id, cliente_id: editForm.cliente_id, pagamentos: editForm.pagamentos },
+      editForm.pagamento_status,
+      valorNum,
+    );
     toast.success("Pedido atualizado!");
     setEditModalOpen(false);
     loadPedidos();
+  };
+
+  const handleEditSave = async () => {
+    if (!editForm) return;
+    if (!editForm.origem_cliente) { toast.error("Selecione a origem do cliente"); return; }
+    if (editForm.pagamento_status !== editOriginalPagStatus) {
+      setEditConfirm(editForm.pagamento_status === "pago" ? "to_pago" : "to_pendente");
+      return;
+    }
+    await persistEdit();
   };
 
   const handleDelete = async (id: string) => {
@@ -149,6 +213,19 @@ export default function Pedidos() {
   const copyComprovante = (link: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/comprovante/${link}`);
     toast.success("Link copiado!");
+  };
+
+  const confirmToggle = async () => {
+    if (!togglePed) return;
+    const pag = togglePed.pagamentos?.[0];
+    const isPaid = pag?.status === "pago";
+    const valorTotal = pag?.valor_total
+      ? Number(pag.valor_total)
+      : Number(pacotes.find(pp => pp.nome === togglePed.pacote)?.preco || 0);
+    await upsertPagamento(togglePed, isPaid ? "pendente" : "pago", valorTotal);
+    toast.success(isPaid ? "Recebimento cancelado" : "Pagamento confirmado");
+    setTogglePed(null);
+    loadPedidos();
   };
 
   const todayCount = pedidos.filter(p => isSameDay(new Date(p.created_at), new Date())).length;
@@ -181,7 +258,6 @@ export default function Pedidos() {
     return format(d, "dd/MM HH:mm");
   };
 
-  // Calendar helpers
   const monthStart = startOfMonth(calendarMonth);
   const monthEnd = endOfMonth(calendarMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -193,6 +269,31 @@ export default function Pedidos() {
     finalizado: "bg-success",
   };
 
+  const PagToggle = ({ value, onChange }: { value: "pago" | "pendente"; onChange: (v: "pago" | "pendente") => void }) => (
+    <div className="grid grid-cols-2 gap-2">
+      <button
+        type="button"
+        onClick={() => onChange("pendente")}
+        className={cn(
+          "px-3 py-2 rounded-md border text-sm font-medium transition-colors",
+          value === "pendente"
+            ? "bg-destructive/20 text-destructive border-destructive/40"
+            : "bg-input border-border text-muted-foreground hover:bg-muted/40",
+        )}
+      >🔴 Pendente</button>
+      <button
+        type="button"
+        onClick={() => onChange("pago")}
+        className={cn(
+          "px-3 py-2 rounded-md border text-sm font-medium transition-colors",
+          value === "pago"
+            ? "bg-success/20 text-success border-success/40"
+            : "bg-input border-border text-muted-foreground hover:bg-muted/40",
+        )}
+      >🟢 Pago</button>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -200,7 +301,7 @@ export default function Pedidos() {
           <h1 className="text-2xl font-display font-bold">Pedidos</h1>
           <p className="text-sm text-muted-foreground">Gerencie seus pedidos e acompanhe o progresso</p>
         </div>
-        <Button onClick={() => { setForm({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "", pacote: "" }); setModalOpen(true); }}>
+        <Button onClick={() => { setForm({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "", pacote: "", valor: "", pagamento_status: "pendente" }); setModalOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Novo Pedido
         </Button>
       </div>
@@ -269,7 +370,9 @@ export default function Pedidos() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pedidos.length > 0 ? pedidos.map((p) => (
+                  {pedidos.length > 0 ? pedidos.map((p) => {
+                    const pago = p.pagamentos?.[0]?.status === "pago";
+                    return (
                     <TableRow key={p.id}>
                       <TableCell>{p.clientes?.nome}</TableCell>
                       <TableCell>{p.servico}</TableCell>
@@ -282,12 +385,13 @@ export default function Pedidos() {
                       </TableCell>
                       <TableCell><StatusBadge status={p.status} /></TableCell>
                       <TableCell>
-                        {(() => {
-                          const ps = p.pagamentos?.[0]?.status;
-                          if (ps === "pago") return <Badge className="bg-success/20 text-success border-success/30 border">🟢 Pago integral</Badge>;
-                          if (ps === "parcial") return <Badge className="bg-warning/20 text-warning border-warning/30 border">🟡 Entrada recebida</Badge>;
-                          return <Badge className="bg-destructive/20 text-destructive border-destructive/30 border">🔴 Não pago</Badge>;
-                        })()}
+                        <button onClick={() => setTogglePed(p)} title="Alternar status">
+                          {pago ? (
+                            <Badge className="bg-success/20 text-success border-success/30 border cursor-pointer hover:bg-success/30">🟢 Pago</Badge>
+                          ) : (
+                            <Badge className="bg-destructive/20 text-destructive border-destructive/30 border cursor-pointer hover:bg-destructive/30">🔴 Pendente</Badge>
+                          )}
+                        </button>
                       </TableCell>
                       <TableCell>
                         <span className="text-xs font-mono text-muted-foreground">{getCronometro(p)}</span>
@@ -335,7 +439,7 @@ export default function Pedidos() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  )) : (
+                  )}) : (
                     <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum pedido</TableCell></TableRow>
                   )}
                 </TableBody>
@@ -383,7 +487,7 @@ export default function Pedidos() {
 
       {/* Create Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="bg-card border-border max-w-lg">
+        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Criar Pedido</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -393,25 +497,33 @@ export default function Pedidos() {
                 <SelectContent>{clientes.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            {pacotes.length > 0 && (
-              <div className="space-y-2">
-                <Label>Pacote</Label>
-                <Select
-                  value={form.pacote || "__none__"}
-                  onValueChange={(v) => setForm({ ...form, pacote: v === "__none__" ? "" : v })}
-                >
-                  <SelectTrigger className="bg-input border-border"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Sem pacote</SelectItem>
-                    {pacotes.map((p) => (
-                      <SelectItem key={p.id} value={p.nome}>
-                        {p.icone} {p.nome} — R$ {Number(p.preco).toFixed(2).replace(".", ",")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label>Pacote</Label>
+              <Select
+                value={form.pacote === "Outro" ? "__outro__" : (form.pacote || "__none__")}
+                onValueChange={(v) => onPacoteChange(v, "form")}
+              >
+                <SelectTrigger className="bg-input border-border"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sem pacote</SelectItem>
+                  {pacotes.map((p) => (
+                    <SelectItem key={p.id} value={p.nome}>
+                      {p.icone} {p.nome} — {fmtBRL(Number(p.preco))}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__outro__">✏️ Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Valor do pedido (R$)</Label>
+              <Input
+                value={form.valor}
+                onChange={(e) => setForm({ ...form, valor: e.target.value })}
+                placeholder="0,00"
+                className="bg-input border-border"
+              />
+            </div>
             <div className="space-y-2">
               <Label>Serviço</Label>
               <Input value={form.servico} onChange={(e) => setForm({ ...form, servico: e.target.value })} placeholder="Ex: Ensaio Aniversário, Ensaio Infantil..." className="bg-input border-border" />
@@ -433,8 +545,11 @@ export default function Pedidos() {
                 </SelectContent>
               </Select>
             </div>
-            <p className="text-xs text-muted-foreground">⏱ O tempo estimado será calculado automaticamente ao iniciar o pedido (da hora atual até a data de entrega).</p>
-            <p className="text-xs text-muted-foreground">◆ Ao criar: comprovante gerado automaticamente com link para o cliente acompanhar</p>
+            <div className="space-y-2">
+              <Label>Pagamento</Label>
+              <PagToggle value={form.pagamento_status} onChange={(v) => setForm({ ...form, pagamento_status: v })} />
+            </div>
+            <p className="text-xs text-muted-foreground">⏱ O tempo estimado será calculado automaticamente ao iniciar o pedido.</p>
           </div>
           <DialogFooter>
             <Button onClick={handleCreate} className="w-full">Criar Pedido</Button>
@@ -444,7 +559,7 @@ export default function Pedidos() {
 
       {/* Edit Modal */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="bg-card border-border max-w-lg">
+        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Editar Pedido</DialogTitle></DialogHeader>
           {editForm && (
             <div className="space-y-4">
@@ -455,25 +570,33 @@ export default function Pedidos() {
                   <SelectContent>{clientes.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              {pacotes.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Pacote</Label>
-                  <Select
-                    value={editForm.pacote || "__none__"}
-                    onValueChange={(v) => setEditForm({ ...editForm, pacote: v === "__none__" ? "" : v })}
-                  >
-                    <SelectTrigger className="bg-input border-border"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Sem pacote</SelectItem>
-                      {pacotes.map((p) => (
-                        <SelectItem key={p.id} value={p.nome}>
-                          {p.icone} {p.nome} — R$ {Number(p.preco).toFixed(2).replace(".", ",")}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label>Pacote</Label>
+                <Select
+                  value={editForm.pacote === "Outro" ? "__outro__" : (editForm.pacote || "__none__")}
+                  onValueChange={(v) => onPacoteChange(v, "edit")}
+                >
+                  <SelectTrigger className="bg-input border-border"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sem pacote</SelectItem>
+                    {pacotes.map((p) => (
+                      <SelectItem key={p.id} value={p.nome}>
+                        {p.icone} {p.nome} — {fmtBRL(Number(p.preco))}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="__outro__">✏️ Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Valor do pedido (R$)</Label>
+                <Input
+                  value={editForm.valor}
+                  onChange={(e) => setEditForm({ ...editForm, valor: e.target.value })}
+                  placeholder="0,00"
+                  className="bg-input border-border"
+                />
+              </div>
               <div className="space-y-2">
                 <Label>Serviço</Label>
                 <Input value={editForm.servico} onChange={(e) => setEditForm({ ...editForm, servico: e.target.value })} className="bg-input border-border" />
@@ -495,6 +618,10 @@ export default function Pedidos() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Pagamento</Label>
+                <PagToggle value={editForm.pagamento_status} onChange={(v) => setEditForm({ ...editForm, pagamento_status: v })} />
+              </div>
             </div>
           )}
           <DialogFooter>
@@ -502,6 +629,55 @@ export default function Pedidos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit pagamento confirmation */}
+      <AlertDialog open={editConfirm !== null} onOpenChange={(o) => !o && setEditConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {editConfirm === "to_pago" ? "Confirmar recebimento" : "Cancelar recebimento"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {editConfirm === "to_pago"
+                ? `Confirmar recebimento de ${fmtBRL(Number(String(editForm?.valor || 0).replace(",", ".")))} referente ao pedido de ${editForm?.clientes?.nome || "cliente"}?`
+                : "Deseja cancelar o recebimento deste pagamento? O valor será removido do Financeiro."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={async () => { setEditConfirm(null); await persistEdit(); }}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Quick toggle from list */}
+      <AlertDialog open={togglePed !== null} onOpenChange={(o) => !o && setTogglePed(null)}>
+        <AlertDialogContent>
+          {togglePed && (() => {
+            const pag = togglePed.pagamentos?.[0];
+            const isPaid = pag?.status === "pago";
+            const valor = pag?.valor_total
+              ? Number(pag.valor_total)
+              : Number(pacotes.find(pp => pp.nome === togglePed.pacote)?.preco || 0);
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{isPaid ? "Cancelar recebimento" : "Confirmar recebimento"}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {isPaid
+                      ? "Deseja cancelar o recebimento deste pagamento? O valor será removido do Financeiro."
+                      : `Confirmar recebimento de ${fmtBRL(valor)} referente ao pedido de ${togglePed.clientes?.nome || "cliente"}?`}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={confirmToggle}>Confirmar</AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Detail Modal */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
@@ -518,7 +694,7 @@ export default function Pedidos() {
               </div>
               <PagamentoSection
                 pedido={detailPedido}
-                defaultValor={Number(pacotes.find(pp => pp.nome === detailPedido.pacote)?.preco || 0)}
+                defaultValor={Number(detailPedido.pagamentos?.[0]?.valor_total || pacotes.find(pp => pp.nome === detailPedido.pacote)?.preco || 0)}
                 onChanged={loadPedidos}
               />
             </div>

@@ -97,7 +97,7 @@ export default function Clientes() {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ nome: "", whatsapp: "", email: "" });
+    setForm({ nome: "", whatsapp: "", email: "", data_cadastro: format(new Date(), "yyyy-MM-dd") });
     setEditEtiquetasSelecionadas([]);
     setModalOpen(true);
   };

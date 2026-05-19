@@ -120,11 +120,12 @@ export default function Pedidos() {
       cliente_id: form.cliente_id,
       servico: form.servico,
       pacote: form.pacote || null,
+      valor: valorNum > 0 ? valorNum : null,
       data_entrega: form.data_entrega ? new Date(form.data_entrega).toISOString() : null,
       tempo_estimado_minutos: tempoEstimado,
       link_comprovante: linkComprovante,
       origem_cliente: form.origem_cliente,
-    }).select().single();
+    } as any).select().single();
     if (error || !inserted) { toast.error(error?.message || "Erro"); return; }
     await upsertPagamento({ ...inserted, pagamentos: [] }, form.pagamento_status, valorNum);
     toast.success("Pedido criado!");

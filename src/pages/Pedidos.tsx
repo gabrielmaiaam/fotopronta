@@ -170,16 +170,17 @@ export default function Pedidos() {
     const tempoEstimado = editForm.data_entrega
       ? Math.max(differenceInMinutes(new Date(editForm.data_entrega), new Date()), 1)
       : 120;
+    const valorNum = Number(String(editForm.valor).replace(",", ".")) || 0;
     const { error } = await supabase.from("pedidos").update({
       cliente_id: editForm.cliente_id,
       servico: editForm.servico,
       pacote: editForm.pacote || null,
+      valor: valorNum > 0 ? valorNum : null,
       data_entrega: editForm.data_entrega ? new Date(editForm.data_entrega).toISOString() : null,
       tempo_estimado_minutos: tempoEstimado,
       origem_cliente: editForm.origem_cliente,
-    }).eq("id", editForm.id);
+    } as any).eq("id", editForm.id);
     if (error) { toast.error(error.message); return; }
-    const valorNum = Number(String(editForm.valor).replace(",", ".")) || 0;
     await upsertPagamento(
       { id: editForm.id, user_id: editForm.user_id, cliente_id: editForm.cliente_id, pagamentos: editForm.pagamentos },
       editForm.pagamento_status,

@@ -117,17 +117,25 @@ export default function Clientes() {
 
     let clienteId = editing?.id;
 
+    const createdAtIso = form.data_cadastro
+      ? new Date(`${form.data_cadastro}T12:00:00`).toISOString()
+      : null;
+
     if (editing) {
+      const updatePayload: any = { nome: form.nome, whatsapp: form.whatsapp || null, email: form.email || null };
+      if (createdAtIso) updatePayload.created_at = createdAtIso;
       const { error } = await supabase
         .from("clientes")
-        .update({ nome: form.nome, whatsapp: form.whatsapp || null, email: form.email || null })
+        .update(updatePayload)
         .eq("id", editing.id);
       if (error) { toast.error(error.message); return; }
     } else {
       if (!user) { toast.error("Sessão expirada"); return; }
+      const insertPayload: any = { user_id: user.id, nome: form.nome, whatsapp: form.whatsapp || null, email: form.email || null };
+      if (createdAtIso) insertPayload.created_at = createdAtIso;
       const { data, error } = await supabase
         .from("clientes")
-        .insert({ user_id: user.id, nome: form.nome, whatsapp: form.whatsapp || null, email: form.email || null })
+        .insert(insertPayload)
         .select("id")
         .single();
       if (error) { toast.error(error.message); return; }

@@ -360,7 +360,9 @@ export default function Pedidos() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Cliente</TableHead>
+                    <TableHead>Criado em</TableHead>
                     <TableHead>Serviço</TableHead>
+                    <TableHead>Valor</TableHead>
                     <TableHead>Entrega</TableHead>
                     <TableHead>Progresso</TableHead>
                     <TableHead>Status</TableHead>
@@ -375,7 +377,9 @@ export default function Pedidos() {
                     return (
                     <TableRow key={p.id}>
                       <TableCell>{p.clientes?.nome}</TableCell>
+                      <TableCell>{format(new Date(p.created_at), "dd/MM/yy")}</TableCell>
                       <TableCell>{p.servico}</TableCell>
+                      <TableCell>{p.valor ? `R$ ${Number(p.valor).toFixed(2).replace(".", ",")}` : "—"}</TableCell>
                       <TableCell>{p.data_entrega ? format(new Date(p.data_entrega), "dd/MM/yy HH:mm") : "—"}</TableCell>
                       <TableCell className="min-w-[120px]">
                         <div className="flex items-center gap-2">
@@ -440,7 +444,7 @@ export default function Pedidos() {
                       </TableCell>
                     </TableRow>
                   )}) : (
-                    <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum pedido</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Nenhum pedido</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>

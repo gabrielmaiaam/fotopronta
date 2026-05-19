@@ -38,6 +38,7 @@ export default function Pedidos() {
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [form, setForm] = useState<any>({ cliente_id: "", servico: "", data_entrega: "", origem_cliente: "", pacote: "", valor: "", pagamento_status: "pendente", data_cadastro: "" });
   const [togglePed, setTogglePed] = useState<any>(null);
+  const [ordenacao, setOrdenacao] = useState<"mais_novo" | "mais_antigo">("mais_novo");
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -352,9 +353,13 @@ export default function Pedidos() {
       </div>
 
       {/* View Toggle */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <Button variant={view === "list" ? "default" : "outline"} size="sm" onClick={() => setView("list")}><List className="h-4 w-4 mr-1" /> Lista</Button>
         <Button variant={view === "calendar" ? "default" : "outline"} size="sm" onClick={() => setView("calendar")}><CalIcon className="h-4 w-4 mr-1" /> Calendário</Button>
+        <div className="flex gap-2 ml-auto">
+          <Button variant={ordenacao === "mais_novo" ? "default" : "outline"} size="sm" onClick={() => setOrdenacao("mais_novo")}>Mais novo</Button>
+          <Button variant={ordenacao === "mais_antigo" ? "default" : "outline"} size="sm" onClick={() => setOrdenacao("mais_antigo")}>Mais antigo</Button>
+        </div>
       </div>
 
       {view === "list" ? (
@@ -377,7 +382,10 @@ export default function Pedidos() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pedidos.length > 0 ? pedidos.map((p) => {
+                  {pedidos.length > 0 ? [...pedidos].sort((a, b) => {
+                    const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                    return ordenacao === "mais_novo" ? -diff : diff;
+                  }).map((p) => {
                     const pago = p.pagamentos?.[0]?.status === "pago";
                     return (
                     <TableRow key={p.id}>

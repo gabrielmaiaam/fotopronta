@@ -96,7 +96,10 @@ export default function Clientes() {
     .filter((c) => c.nome.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
       const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      return ordenacao === "mais_novo" ? -diff : diff;
+      if (diff !== 0) return ordenacao === "mais_novo" ? -diff : diff;
+      return ordenacao === "mais_novo"
+        ? b.id.localeCompare(a.id)
+        : a.id.localeCompare(b.id);
     });
 
   const openNew = () => {

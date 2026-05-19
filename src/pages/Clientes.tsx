@@ -104,7 +104,7 @@ export default function Clientes() {
 
   const openEdit = (c: any) => {
     setEditing(c);
-    setForm({ nome: c.nome, whatsapp: c.whatsapp || "", email: c.email || "" });
+    setForm({ nome: c.nome, whatsapp: c.whatsapp || "", email: c.email || "", data_cadastro: c.created_at ? format(new Date(c.created_at), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd") });
     setEditEtiquetasSelecionadas(clienteEtiquetas[c.id] || []);
     setModalOpen(true);
   };

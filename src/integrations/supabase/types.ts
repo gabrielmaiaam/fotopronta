@@ -441,6 +441,7 @@ export type Database = {
           tipo_ensaio: string | null
           updated_at: string
           user_id: string
+          valor: number | null
         }
         Insert: {
           cliente_id: string
@@ -457,6 +458,7 @@ export type Database = {
           tipo_ensaio?: string | null
           updated_at?: string
           user_id: string
+          valor?: number | null
         }
         Update: {
           cliente_id?: string
@@ -473,6 +475,7 @@ export type Database = {
           tipo_ensaio?: string | null
           updated_at?: string
           user_id?: string
+          valor?: number | null
         }
         Relationships: [
           {

@@ -27,7 +27,7 @@ export default function Clientes() {
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ nome: "", whatsapp: "", email: "" });
+  const [form, setForm] = useState({ nome: "", whatsapp: "", email: "", data_cadastro: "" });
 
   // Etiquetas state
   const [painelAberto, setPainelAberto] = useState(false);

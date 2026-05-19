@@ -357,6 +357,15 @@ export default function Clientes() {
                 className="bg-input border-border"
               />
             </div>
+            <div className="space-y-2">
+              <Label>Data de cadastro</Label>
+              <Input
+                type="date"
+                value={form.data_cadastro}
+                onChange={(e) => setForm({ ...form, data_cadastro: e.target.value })}
+                className="bg-input border-border"
+              />
+            </div>
             {etiquetas.length > 0 && (
               <div className="space-y-2">
                 <Label>Etiquetas</Label>

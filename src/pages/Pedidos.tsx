@@ -374,7 +374,7 @@ export default function Pedidos() {
                     <TableHead>Cliente</TableHead>
                     <TableHead>Criado em</TableHead>
                     <TableHead>Serviço</TableHead>
-                    <TableHead>Valor</TableHead>
+                    <TableHead className="whitespace-nowrap">Valor</TableHead>
                     <TableHead>Entrega</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Pagamento</TableHead>

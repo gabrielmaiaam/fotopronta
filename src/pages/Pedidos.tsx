@@ -394,7 +394,7 @@ export default function Pedidos() {
                       <TableCell>{p.clientes?.nome}</TableCell>
                       <TableCell>{format(new Date(p.created_at), "dd/MM/yy")}</TableCell>
                       <TableCell>{p.servico}</TableCell>
-                      <TableCell>{p.valor ? `R$ ${Number(p.valor).toFixed(2).replace(".", ",")}` : "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{p.valor ? `R$\u00A0${Number(p.valor).toFixed(2).replace(".", ",")}` : "—"}</TableCell>
                       <TableCell>{p.data_entrega ? format(new Date(p.data_entrega), "dd/MM/yy HH:mm") : "—"}</TableCell>
                       
                       <TableCell><StatusBadge status={p.status} /></TableCell>

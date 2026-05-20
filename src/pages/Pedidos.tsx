@@ -543,6 +543,15 @@ export default function Pedidos() {
               <Input value={form.servico} onChange={(e) => setForm({ ...form, servico: e.target.value })} placeholder="Ex: Ensaio Aniversário, Ensaio Infantil..." className="bg-input border-border" />
             </div>
             <div className="space-y-2">
+              <Label>Data do pedido</Label>
+              <Input
+                type="date"
+                value={form.data_cadastro}
+                onChange={(e) => setForm({ ...form, data_cadastro: e.target.value })}
+                className="bg-input border-border"
+              />
+            </div>
+            <div className="space-y-2">
               <Label>Data e hora de entrega</Label>
               <DateTimePicker value={form.data_entrega} onChange={(v) => setForm({ ...form, data_entrega: v })} />
             </div>
@@ -562,15 +571,6 @@ export default function Pedidos() {
             <div className="space-y-2">
               <Label>Pagamento</Label>
               <PagToggle value={form.pagamento_status} onChange={(v) => setForm({ ...form, pagamento_status: v })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Data do pedido</Label>
-              <Input
-                type="date"
-                value={form.data_cadastro}
-                onChange={(e) => setForm({ ...form, data_cadastro: e.target.value })}
-                className="bg-input border-border"
-              />
             </div>
             <p className="text-xs text-muted-foreground">⏱ O tempo estimado será calculado automaticamente ao iniciar o pedido.</p>
           </div>
@@ -625,6 +625,15 @@ export default function Pedidos() {
                 <Input value={editForm.servico} onChange={(e) => setEditForm({ ...editForm, servico: e.target.value })} className="bg-input border-border" />
               </div>
               <div className="space-y-2">
+                <Label>Data do pedido</Label>
+                <Input
+                  type="date"
+                  value={editForm.data_cadastro || ""}
+                  onChange={(e) => setEditForm({ ...editForm, data_cadastro: e.target.value })}
+                  className="bg-input border-border"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Data e hora de entrega</Label>
                 <DateTimePicker value={editForm.data_entrega} onChange={(v) => setEditForm({ ...editForm, data_entrega: v })} />
               </div>
@@ -640,15 +649,6 @@ export default function Pedidos() {
                     <SelectItem value="outro">🔗 Outro</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Data do pedido</Label>
-                <Input
-                  type="date"
-                  value={editForm.data_cadastro || ""}
-                  onChange={(e) => setEditForm({ ...editForm, data_cadastro: e.target.value })}
-                  className="bg-input border-border"
-                />
               </div>
               <div className="space-y-2">
                 <Label>Pagamento</Label>

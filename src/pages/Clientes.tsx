@@ -380,11 +380,9 @@ export default function Clientes() {
             </div>
             <div className="space-y-2">
               <Label>Data de cadastro</Label>
-              <Input
-                type="date"
+              <DateTimePicker
                 value={form.data_cadastro}
-                onChange={(e) => setForm({ ...form, data_cadastro: e.target.value })}
-                className="bg-input border-border"
+                onChange={(v) => setForm({ ...form, data_cadastro: v })}
               />
             </div>
             {etiquetas.length > 0 && (

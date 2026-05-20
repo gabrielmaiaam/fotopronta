@@ -110,6 +110,14 @@ export default function ComprovantePublico() {
               </div>
             </div>
           )}
+          {pedido.valor != null && (
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground text-sm">Valor</span>
+              <span className="font-semibold text-primary">
+                R$ {Number(pedido.valor).toFixed(2).replace(".", ",")}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground text-sm">Status</span>
             <StatusBadge status={pedido.status} />

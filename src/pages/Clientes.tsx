@@ -103,14 +103,14 @@ export default function Clientes() {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ nome: "", whatsapp: "", email: "", data_cadastro: format(new Date(), "yyyy-MM-dd") });
+    setForm({ nome: "", whatsapp: "", email: "", data_cadastro: format(new Date(), "yyyy-MM-dd'T'HH:mm") });
     setEditEtiquetasSelecionadas([]);
     setModalOpen(true);
   };
 
   const openEdit = (c: any) => {
     setEditing(c);
-    setForm({ nome: c.nome, whatsapp: c.whatsapp || "", email: c.email || "", data_cadastro: c.created_at ? format(new Date(c.created_at), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd") });
+    setForm({ nome: c.nome, whatsapp: c.whatsapp || "", email: c.email || "", data_cadastro: c.created_at ? format(new Date(c.created_at), "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm") });
     setEditEtiquetasSelecionadas(clienteEtiquetas[c.id] || []);
     setModalOpen(true);
   };

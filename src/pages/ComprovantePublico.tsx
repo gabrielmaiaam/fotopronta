@@ -10,7 +10,6 @@ export default function ComprovantePublico() {
   const { link } = useParams<{ link: string }>();
   const [loading, setLoading] = useState(true);
   const [pedido, setPedido] = useState<any>(null);
-  const [pacote, setPacote] = useState<any>(null);
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -22,15 +21,6 @@ export default function ComprovantePublico() {
         .eq("link_comprovante", link)
         .maybeSingle();
       setPedido(data);
-      if (data?.pacote && data?.user_id) {
-        const { data: pac } = await supabase
-          .from("pacotes" as any)
-          .select("nome, preco, quantidade_fotos, icone")
-          .eq("nome", data.pacote)
-          .eq("user_id", data.user_id)
-          .maybeSingle();
-        setPacote(pac);
-      }
       setLoading(false);
     })();
   }, [link]);
@@ -90,24 +80,10 @@ export default function ComprovantePublico() {
             <span className="text-muted-foreground text-sm">Serviço</span>
             <span className="font-medium text-foreground text-right">{pedido.servico}</span>
           </div>
-          {pedido.pacote && !pacote && (
+          {pedido.pacote && (
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground text-sm">Pacote</span>
               <span className="font-medium text-foreground">{pedido.pacote}</span>
-            </div>
-          )}
-          {pacote && (
-            <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-1.5">
-              <p className="text-xs text-muted-foreground">Pacote adquirido</p>
-              <p className="font-bold text-foreground">{(pacote as any).icone} {(pacote as any).nome}</p>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Valor</span>
-                <span className="font-semibold text-primary">R$ {Number((pacote as any).preco).toFixed(2).replace(".", ",")}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Fotos incluídas</span>
-                <span className="font-medium text-foreground">{(pacote as any).quantidade_fotos} {Number((pacote as any).quantidade_fotos) === 1 ? "foto" : "fotos"}</span>
-              </div>
             </div>
           )}
           {pedido.valor != null && (

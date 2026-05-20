@@ -164,6 +164,7 @@ export default function Pedidos() {
       pagamento_status: status,
       pagamentos: p.pagamentos || [],
       clientes: p.clientes,
+      data_cadastro: p.created_at ? format(new Date(p.created_at), "yyyy-MM-dd") : "",
     });
     setEditModalOpen(true);
   };
@@ -181,6 +182,7 @@ export default function Pedidos() {
       data_entrega: editForm.data_entrega ? new Date(editForm.data_entrega).toISOString() : null,
       tempo_estimado_minutos: tempoEstimado,
       origem_cliente: editForm.origem_cliente,
+      ...(editForm.data_cadastro ? { created_at: new Date(`${editForm.data_cadastro}T12:00:00`).toISOString() } : {}),
     } as any).eq("id", editForm.id);
     if (error) { toast.error(error.message); return; }
     await upsertPagamento(
@@ -384,11 +386,7 @@ export default function Pedidos() {
                   {pedidos.length > 0 ? [...pedidos].sort((a, b) => {
                     const tA = new Date(a.created_at).getTime();
                     const tB = new Date(b.created_at).getTime();
-                    if (tA !== tB) return ordenacao === "mais_novo" ? tB - tA : tA - tB;
-                    const uuidTime = (id: string) => id.replace(/-/g, "").slice(0, 12);
-                    return ordenacao === "mais_novo"
-                      ? uuidTime(b.id).localeCompare(uuidTime(a.id))
-                      : uuidTime(a.id).localeCompare(uuidTime(b.id));
+                    return ordenacao === "mais_novo" ? tB - tA : tA - tB;
                   }).map((p) => {
                     const pago = p.pagamentos?.[0]?.status === "pago";
                     return (
@@ -642,6 +640,15 @@ export default function Pedidos() {
                     <SelectItem value="outro">🔗 Outro</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Data do pedido</Label>
+                <Input
+                  type="date"
+                  value={editForm.data_cadastro || ""}
+                  onChange={(e) => setEditForm({ ...editForm, data_cadastro: e.target.value })}
+                  className="bg-input border-border"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Pagamento</Label>

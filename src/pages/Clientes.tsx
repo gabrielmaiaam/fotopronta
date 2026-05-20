@@ -97,13 +97,7 @@ export default function Clientes() {
     .sort((a, b) => {
       const tA = new Date(a.created_at).getTime();
       const tB = new Date(b.created_at).getTime();
-      if (tA !== tB) return ordenacao === "mais_novo" ? tB - tA : tA - tB;
-      const uuidTime = (id: string) => id.replace(/-/g, "").slice(0, 12);
-      const uA = uuidTime(a.id);
-      const uB = uuidTime(b.id);
-      return ordenacao === "mais_novo"
-        ? uB.localeCompare(uA)
-        : uA.localeCompare(uB);
+      return ordenacao === "mais_novo" ? tB - tA : tA - tB;
     });
 
   const openNew = () => {

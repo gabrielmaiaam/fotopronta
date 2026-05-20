@@ -164,6 +164,7 @@ export default function Pedidos() {
       pagamento_status: status,
       pagamentos: p.pagamentos || [],
       clientes: p.clientes,
+      data_cadastro: p.created_at ? format(new Date(p.created_at), "yyyy-MM-dd") : "",
     });
     setEditModalOpen(true);
   };

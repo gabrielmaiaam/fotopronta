@@ -374,7 +374,6 @@ export default function Pedidos() {
                     <TableHead>Serviço</TableHead>
                     <TableHead>Valor</TableHead>
                     <TableHead>Entrega</TableHead>
-                    <TableHead>Progresso</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Pagamento</TableHead>
                     <TableHead>Cronômetro</TableHead>
@@ -399,12 +398,7 @@ export default function Pedidos() {
                       <TableCell>{p.servico}</TableCell>
                       <TableCell>{p.valor ? `R$ ${Number(p.valor).toFixed(2).replace(".", ",")}` : "—"}</TableCell>
                       <TableCell>{p.data_entrega ? format(new Date(p.data_entrega), "dd/MM/yy HH:mm") : "—"}</TableCell>
-                      <TableCell className="min-w-[120px]">
-                        <div className="flex items-center gap-2">
-                          <Progress value={getProgress(p)} className="h-2 flex-1" />
-                          <span className="text-xs text-muted-foreground">{getProgress(p)}%</span>
-                        </div>
-                      </TableCell>
+                      
                       <TableCell><StatusBadge status={p.status} /></TableCell>
                       <TableCell>
                         <button onClick={() => setTogglePed(p)} title="Alternar status">
@@ -462,7 +456,7 @@ export default function Pedidos() {
                       </TableCell>
                     </TableRow>
                   )}) : (
-                    <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Nenhum pedido</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum pedido</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>

@@ -95,11 +95,15 @@ export default function Clientes() {
   const filtered = clientes
     .filter((c) => c.nome.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
-      const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      if (diff !== 0) return ordenacao === "mais_novo" ? -diff : diff;
+      const tA = new Date(a.created_at).getTime();
+      const tB = new Date(b.created_at).getTime();
+      if (tA !== tB) return ordenacao === "mais_novo" ? tB - tA : tA - tB;
+      const uuidTime = (id: string) => id.replace(/-/g, "").slice(0, 12);
+      const uA = uuidTime(a.id);
+      const uB = uuidTime(b.id);
       return ordenacao === "mais_novo"
-        ? b.id.localeCompare(a.id)
-        : a.id.localeCompare(b.id);
+        ? uB.localeCompare(uA)
+        : uA.localeCompare(uB);
     });
 
   const openNew = () => {

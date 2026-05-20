@@ -646,6 +646,15 @@ export default function Pedidos() {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label>Data do pedido</Label>
+                <Input
+                  type="date"
+                  value={editForm.data_cadastro || ""}
+                  onChange={(e) => setEditForm({ ...editForm, data_cadastro: e.target.value })}
+                  className="bg-input border-border"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Pagamento</Label>
                 <PagToggle value={editForm.pagamento_status} onChange={(v) => setEditForm({ ...editForm, pagamento_status: v })} />
               </div>

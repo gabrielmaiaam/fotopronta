@@ -126,7 +126,7 @@ export default function Pedidos() {
       tempo_estimado_minutos: tempoEstimado,
       link_comprovante: linkComprovante,
       origem_cliente: form.origem_cliente,
-      ...(form.data_cadastro ? { created_at: new Date(`${form.data_cadastro}T12:00:00`).toISOString() } : {}),
+      ...(form.data_cadastro ? { created_at: new Date(form.data_cadastro).toISOString() } : {}),
     } as any).select().single();
     if (error || !inserted) { toast.error(error?.message || "Erro"); return; }
     await upsertPagamento({ ...inserted, pagamentos: [] }, form.pagamento_status, valorNum);
@@ -164,7 +164,7 @@ export default function Pedidos() {
       pagamento_status: status,
       pagamentos: p.pagamentos || [],
       clientes: p.clientes,
-      data_cadastro: p.created_at ? format(new Date(p.created_at), "yyyy-MM-dd") : "",
+      data_cadastro: p.created_at ? format(new Date(p.created_at), "yyyy-MM-dd'T'HH:mm") : "",
     });
     setEditModalOpen(true);
   };
@@ -182,7 +182,7 @@ export default function Pedidos() {
       data_entrega: editForm.data_entrega ? new Date(editForm.data_entrega).toISOString() : null,
       tempo_estimado_minutos: tempoEstimado,
       origem_cliente: editForm.origem_cliente,
-      ...(editForm.data_cadastro ? { created_at: new Date(`${editForm.data_cadastro}T12:00:00`).toISOString() } : {}),
+      ...(editForm.data_cadastro ? { created_at: new Date(editForm.data_cadastro).toISOString() } : {}),
     } as any).eq("id", editForm.id);
     if (error) { toast.error(error.message); return; }
     await upsertPagamento(
@@ -543,13 +543,8 @@ export default function Pedidos() {
               <Input value={form.servico} onChange={(e) => setForm({ ...form, servico: e.target.value })} placeholder="Ex: Ensaio Aniversário, Ensaio Infantil..." className="bg-input border-border" />
             </div>
             <div className="space-y-2">
-              <Label>Data do pedido</Label>
-              <Input
-                type="date"
-                value={form.data_cadastro}
-                onChange={(e) => setForm({ ...form, data_cadastro: e.target.value })}
-                className="bg-input border-border"
-              />
+              <Label>Data e hora do pedido</Label>
+              <DateTimePicker value={form.data_cadastro} onChange={(v) => setForm({ ...form, data_cadastro: v })} />
             </div>
             <div className="space-y-2">
               <Label>Data e hora de entrega</Label>
@@ -625,13 +620,8 @@ export default function Pedidos() {
                 <Input value={editForm.servico} onChange={(e) => setEditForm({ ...editForm, servico: e.target.value })} className="bg-input border-border" />
               </div>
               <div className="space-y-2">
-                <Label>Data do pedido</Label>
-                <Input
-                  type="date"
-                  value={editForm.data_cadastro || ""}
-                  onChange={(e) => setEditForm({ ...editForm, data_cadastro: e.target.value })}
-                  className="bg-input border-border"
-                />
+                <Label>Data e hora do pedido</Label>
+                <DateTimePicker value={editForm.data_cadastro || ""} onChange={(v) => setEditForm({ ...editForm, data_cadastro: v })} />
               </div>
               <div className="space-y-2">
                 <Label>Data e hora de entrega</Label>

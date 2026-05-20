@@ -10,7 +10,6 @@ export default function ComprovantePublico() {
   const { link } = useParams<{ link: string }>();
   const [loading, setLoading] = useState(true);
   const [pedido, setPedido] = useState<any>(null);
-  const [pacote, setPacote] = useState<any>(null);
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -22,15 +21,6 @@ export default function ComprovantePublico() {
         .eq("link_comprovante", link)
         .maybeSingle();
       setPedido(data);
-      if (data?.pacote && data?.user_id) {
-        const { data: pac } = await supabase
-          .from("pacotes" as any)
-          .select("nome, preco, quantidade_fotos, icone")
-          .eq("nome", data.pacote)
-          .eq("user_id", data.user_id)
-          .maybeSingle();
-        setPacote(pac);
-      }
       setLoading(false);
     })();
   }, [link]);

@@ -1,23 +1,16 @@
-# Mostrar Valor no Comprovante em qualquer situação
+# Simplificar comprovante removendo card de pacote
 
-No comprovante público, o preço só aparece dentro do card "Pacote adquirido" — e esse card só renderiza quando o pacote do pedido bate exatamente com algum cadastrado em `pacotes`. Nos casos "Outro" ou "Pacote Essencial" não localizado, o valor some.
+No desktop o comprovante mostra um card "Pacote adquirido" com nome do pacote, valor e fotos incluídas — e logo abaixo aparece de novo "Valor" (linha sempre visível). Fica redundante e poluído.
 
 ## Mudança
 
-**Arquivo:** `src/pages/ComprovantePublico.tsx` — adicionar uma linha "Valor" sempre visível (usando `pedido.valor`), logo após o bloco do pacote e antes de Status:
+**Arquivo:** `src/pages/ComprovantePublico.tsx`
 
-```tsx
-{pedido.valor != null && (
-  <div className="flex justify-between items-center">
-    <span className="text-muted-foreground text-sm">Valor</span>
-    <span className="font-semibold text-primary">
-      R$ {Number(pedido.valor).toFixed(2).replace(".", ",")}
-    </span>
-  </div>
-)}
-```
+- Remover completamente o bloco do card `Pacote adquirido` (o `<div>` com `rounded-xl border border-primary/30 bg-primary/5`).
+- Remover a busca do pacote no `useEffect` e o estado `pacote` (não são mais usados).
+- Simplificar a linha de "Pacote": sempre mostrar `pedido.pacote` quando existir (sem o `&& !pacote`).
 
-Mostra o valor em todos os cenários (com ou sem card de pacote), garantindo que o cliente veja o preço sempre.
+Resultado: layout enxuto com Cliente, Serviço, Pacote (texto), Valor, Status, Criado em, Prazo — igual no mobile e no desktop.
 
 ## Arquivos afetados
 - `src/pages/ComprovantePublico.tsx`

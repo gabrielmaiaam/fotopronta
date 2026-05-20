@@ -1,34 +1,21 @@
-## Plano — Valor em Pedidos + Data de cadastro em Clientes
+## Plano — Data do pedido editável + ordenação estrita por horário
 
-### 1. Adicionar coluna `valor` na tabela `pedidos`
+### Ajuste 1 — Campo "Data do pedido" no modal Editar Pedido (`src/pages/Pedidos.tsx`)
 
-Migration:
-```sql
-ALTER TABLE public.pedidos ADD COLUMN valor numeric;
-```
-(nullable, sem default — pedidos antigos ficam com `—`)
+- Em `handleEdit` (abertura do modal), incluir `data_cadastro: format(new Date(p.created_at), "yyyy-MM-dd")` no `editForm`.
+- Adicionar no modal Editar Pedido um `<Input type="date">` com label **"Data do pedido"** ligado a `editForm.data_cadastro`.
+- Em `handleEditSave`, incluir no update do pedido:
+  `created_at: new Date(`${editForm.data_cadastro}T12:00:00`).toISOString()` (somente se preenchido).
 
-### 2. `src/pages/Pedidos.tsx`
+### Ajuste 2 — Ordenação estrita por horário
 
-A lógica de selecionar pacote/Outro/Sem pacote e o input "Valor do pedido (R$)" já existe nos dois modais. O que falta é **persistir** `valor` na tabela `pedidos`:
+Hoje, em `Pedidos.tsx` e `Clientes.tsx`, quando dois itens têm o mesmo timestamp o código cai num fallback por UUID. O usuário quer ordenação puramente cronológica pelo `created_at` real (com horas/minutos/segundos).
 
-- **handleCreate**: incluir `valor: valorNum || null` no insert do pedido (hoje só vai pra `pagamentos`).
-- **handleEditSave**: incluir `valor: valorNum || null` no update do pedido.
-- **handleEdit**: ao abrir o modal, preencher `editForm.valor` a partir de `p.valor` (caindo para `pagamentos.valor_total` ou preço do pacote como fallback para pedidos antigos).
-- **Tabela** (linha 382): já lê `p.valor` corretamente — funcionará assim que a coluna existir e for populada.
-- Atualizar `src/integrations/supabase/types.ts` é automático após a migration.
+- `src/pages/Pedidos.tsx` (linhas ~384-392): remover o fallback por UUID; manter apenas a comparação por `new Date(created_at).getTime()`.
+- `src/pages/Clientes.tsx` (bloco `.sort` em `filtered`): mesma remoção, ordenar somente por `created_at`.
 
-Nenhuma mudança na UI dos modais — os campos já estão prontos.
-
-### 3. `src/pages/Clientes.tsx` — campo "Data de cadastro"
-
-- Adicionar `data_cadastro` ao state do form do modal Editar/Novo Cliente.
-- Em `handleEdit` (abrir modal), preencher com `cliente.created_at` em formato `yyyy-MM-dd`.
-- Adicionar `<Input type="date">` com label **"Data de cadastro"** no modal.
-- Ao salvar (modo edição): incluir `created_at: new Date(form.data_cadastro).toISOString()` no update.
-- Ao criar novo cliente: campo opcional; se preenchido, enviar `created_at`, senão deixar default.
+Como `created_at` já é armazenado com precisão de microssegundos no Postgres, dois cadastros no mesmo dia mas em horários diferentes serão corretamente ordenados (mais novo = horário mais recente).
 
 ### Arquivos afetados
-- Migration nova (coluna `valor` em `pedidos`)
 - `src/pages/Pedidos.tsx`
 - `src/pages/Clientes.tsx`

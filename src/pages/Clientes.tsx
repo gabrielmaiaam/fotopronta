@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { DateTimePicker } from "@/components/DateTimePicker";
 
 const CORES = [
   "#5B7FFF", "#8B5CF6", "#F97316", "#22C55E", "#EF4444",

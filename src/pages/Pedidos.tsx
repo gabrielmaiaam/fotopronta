@@ -182,6 +182,7 @@ export default function Pedidos() {
       data_entrega: editForm.data_entrega ? new Date(editForm.data_entrega).toISOString() : null,
       tempo_estimado_minutos: tempoEstimado,
       origem_cliente: editForm.origem_cliente,
+      ...(editForm.data_cadastro ? { created_at: new Date(`${editForm.data_cadastro}T12:00:00`).toISOString() } : {}),
     } as any).eq("id", editForm.id);
     if (error) { toast.error(error.message); return; }
     await upsertPagamento(

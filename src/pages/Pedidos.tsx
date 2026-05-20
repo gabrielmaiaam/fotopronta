@@ -386,11 +386,7 @@ export default function Pedidos() {
                   {pedidos.length > 0 ? [...pedidos].sort((a, b) => {
                     const tA = new Date(a.created_at).getTime();
                     const tB = new Date(b.created_at).getTime();
-                    if (tA !== tB) return ordenacao === "mais_novo" ? tB - tA : tA - tB;
-                    const uuidTime = (id: string) => id.replace(/-/g, "").slice(0, 12);
-                    return ordenacao === "mais_novo"
-                      ? uuidTime(b.id).localeCompare(uuidTime(a.id))
-                      : uuidTime(a.id).localeCompare(uuidTime(b.id));
+                    return ordenacao === "mais_novo" ? tB - tA : tA - tB;
                   }).map((p) => {
                     const pago = p.pagamentos?.[0]?.status === "pago";
                     return (

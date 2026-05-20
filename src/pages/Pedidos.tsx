@@ -625,6 +625,15 @@ export default function Pedidos() {
                 <Input value={editForm.servico} onChange={(e) => setEditForm({ ...editForm, servico: e.target.value })} className="bg-input border-border" />
               </div>
               <div className="space-y-2">
+                <Label>Data do pedido</Label>
+                <Input
+                  type="date"
+                  value={editForm.data_cadastro || ""}
+                  onChange={(e) => setEditForm({ ...editForm, data_cadastro: e.target.value })}
+                  className="bg-input border-border"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Data e hora de entrega</Label>
                 <DateTimePicker value={editForm.data_entrega} onChange={(v) => setEditForm({ ...editForm, data_entrega: v })} />
               </div>
@@ -640,15 +649,6 @@ export default function Pedidos() {
                     <SelectItem value="outro">🔗 Outro</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Data do pedido</Label>
-                <Input
-                  type="date"
-                  value={editForm.data_cadastro || ""}
-                  onChange={(e) => setEditForm({ ...editForm, data_cadastro: e.target.value })}
-                  className="bg-input border-border"
-                />
               </div>
               <div className="space-y-2">
                 <Label>Pagamento</Label>

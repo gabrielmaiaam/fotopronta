@@ -124,7 +124,7 @@ export default function Clientes() {
     let clienteId = editing?.id;
 
     const createdAtIso = form.data_cadastro
-      ? new Date(`${form.data_cadastro}T12:00:00`).toISOString()
+      ? new Date(form.data_cadastro).toISOString()
       : null;
 
     if (editing) {

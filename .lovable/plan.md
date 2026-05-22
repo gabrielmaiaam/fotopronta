@@ -1,78 +1,41 @@
-# Reestruturação completa da página Financeiro
+# Dashboard enxuto
 
-A página `/financeiro` (arquivo `src/pages/Pagamentos.tsx`) será reorganizada em 3 partes, mantendo todos os dados atuais e somente adicionando estrutura. A página de Meta Ads continua existindo, mas o investimento mensal passa a entrar também como "Despesa Variável" para unificar a lógica de fluxo de caixa.
+Reescrita do `src/pages/Dashboard.tsx` em 3 seções, removendo todo o resto.
 
-## Parte 1 — Despesas (fixas e variáveis)
+## Remover
+- Seção "Recomendações Inteligentes" (componente `RecCard` também)
+- Linha 1 (Faturamento Hoje/Semana/Mês + Lucro)
+- Linha 2 (Ticket Médio, Despesas, Retirado, Margem)
+- Linha "Resumo extra" atual
 
-### Migração no Supabase (tabela `despesas`)
-Adicionar colunas (sem apagar dados):
-- `dia_vencimento` integer (1–31), default `1`
-- `tipo` text ('fixa' | 'variavel'), default `'fixa'`
-- `status_mes` jsonb, default `'{}'::jsonb` — armazena `{ "2026-05": "pago", "2026-04": "nao_pago" }`
-- Adicionar valores à categoria: passa a aceitar também `saude` e `educacao` (campo já é text, basta atualizar lista no front)
+## Seção 1 — Gráfico de Receita
+Card grande no topo.
+- Título "Receita" + subtítulo dinâmico ("Hoje", "Últimos 7 dias", "Últimos 30 dias", "Este mês")
+- Toggle no canto superior direito: `Hoje | 7 dias | 30 dias | Este mês` (ativo em `bg-primary`)
+- Valor total do período em destaque logo abaixo do título (`text-3xl`)
+- `AreaChart` (recharts) com a evolução da receita:
+  - **Hoje** → agrupado por hora (0–23h)
+  - **7 dias** / **30 dias** → por dia
+  - **Este mês** → por dia do mês corrente
+- Fonte: `pagamentos` com `status='pago'`, somando `valor_pago` por bucket, filtrando por `updated_at || created_at`
+- Vazio: "Nenhuma venda neste período"
 
-Migração de dados existentes:
-- Toda despesa cujo nome contenha "Meta Ads" → `tipo = 'variavel'`
-- Demais despesas → `tipo = 'fixa'`
-- `dia_vencimento = 1` para todas
-- `status_mes = '{}'`
+## Seção 2 — 5 cards em linha
+Grid `grid-cols-2 md:grid-cols-5`:
+1. 💰 Lucro Líquido do Mês (verde/vermelho) — receita do mês − despesas do mês (mesma fórmula atual: fixas + Meta Ads c/ imposto)
+2. 🖼️ Galerias — total cadastradas
+3. 👥 Clientes — total cadastrados
+4. ⏰ Pedidos Pendentes — pedidos cujo `status` ≠ `pronto`/`finalizado` (manter critério atual: `status !== 'pronto'`)
+5. ✅ Pedidos Pagos — pagamentos com `status='pago'` no mês atual
 
-### UI — duas seções separadas
-
-**Despesas Fixas 📌**
-- Tabela: Nome | Categoria | Dia Venc. | Valor | Status do mês | Ações
-- Botão toggle "✅ Pago / ❌ Não pago" que grava em `status_mes[YYYY-MM]`
-- Badge 🔔 quando faltam ≤3 dias para vencer (mês selecionado = mês atual)
-- Badge "VENCIDA" vermelho se hoje > dia_vencimento e ainda não pago no mês atual
-- Botão "+ Nova Despesa Fixa"
-
-**Despesas Variáveis 📊**
-- Mesma estrutura, mas coluna Valor é editável inline por mês (armazenar em `status_mes[YYYY-MM]` como objeto `{ status, valor }`)
-- Botão "+ Nova Despesa Variável"
-
-### Modal "Nova Despesa"
-Campos: Nome · Categoria (Ferramenta de IA, Marketing, Infraestrutura, Saúde, Educação, Outro) · Tipo (Fixa/Variável) · Dia de vencimento (1–31) · Valor · Salvar.
-
-## Parte 2 — Fluxo de Caixa Anual
-
-Nova seção abaixo de Despesas. Tabela com 12 meses do ano selecionado:
-
-```text
-Mês | Saldo Inicial | (+) Entradas | (-) Saídas | Saldo Final
-```
-
-- **Entradas** = soma de `pagamentos.valor_pago` com `status='pago'` no mês
-- **Saídas** = despesas fixas marcadas como pagas no mês + valor mensal das variáveis + Meta Ads (`meta_ads_investimentos × (1 + taxa)`)
-- **Saldo Inicial** = Saldo Final do mês anterior, exceto Janeiro (input manual, salvo em `profiles.saldo_inicial_ano` como jsonb `{ "2026": 1500 }`)
-- **Saldo Final** = Inicial + Entradas − Saídas (verde se positivo, vermelho se negativo)
-- Mês atual destacado (borda primária)
-- Select para trocar ano (anos com dados + ano atual + próximo)
-
-Migração extra: adicionar coluna `saldo_inicial_ano jsonb default '{}'::jsonb` em `profiles`.
-
-## Parte 3 — Melhorias gerais
-
-**Cards de resumo no topo** (já existem, atualizar fórmulas):
-- 💵 Faturamento do Mês
-- 💸 Total Despesas do Mês (fixas pagas no mês + variáveis do mês)
-- 💰 Lucro Líquido (verde/vermelho)
-- 📊 Margem de Lucro (%)
-
-**Alertas do Mês** (novo, abaixo dos cards):
-- Lista despesas fixas com vencimento nos próximos 5 dias e ainda não pagas no mês atual
-- Formato: `🔔 [Nome] vence dia [X] — R$ [valor]`
-- Vazio: `✅ Nenhuma despesa vencendo em breve`
-
-**Filtro mês/ano global** no topo da página afeta: cards, alertas, DRE, status das despesas. (Fluxo de caixa usa só o ano.)
-
-**Mantido sem alteração**: DRE Simplificado (passa a ler novos campos), Distribuição do Lucro, Retiradas, página Meta Ads.
-
-## Arquivos afetados
-- `src/pages/Pagamentos.tsx` — reestruturação principal
-- Migração SQL: `despesas` (3 colunas + UPDATE), `profiles` (1 coluna)
-- Possíveis novos componentes auxiliares: `DespesasTable.tsx`, `FluxoCaixaTable.tsx`, `AlertasMes.tsx` (para manter o arquivo enxuto)
+## Seção 3 — Galerias Recentes
+Mantida como está (tabela com últimas 5: Título | Cliente | Status | Valor).
 
 ## Detalhes técnicos
-- `status_mes` unificado para fixas e variáveis: para variáveis o valor do mês fica em `status_mes[YYYY-MM].valor`; quando ausente, cai no `valor` base da despesa
-- Toggle pago/não pago faz `UPDATE despesas SET status_mes = jsonb_set(...)` via supabase-js
-- Fluxo de Caixa é calculado client-side a partir de pagamentos + despesas já carregados
+- `loadData` simplificado: buscar apenas `galerias` (id + recentes), `clientes` (id), `pedidos` (id, status), `pagamentos` (*), `despesas` (*), `meta_ads_investimentos` (*), `profiles` (taxa). Remover `retiradas` e fórmulas de distribuição.
+- Helper `bucketize(pagamentos, periodo)` retorna `[{label, valor}]` para o `AreaChart`.
+- Reaproveitar tokens existentes (`hsl(var(--primary))`, `text-success`, `text-destructive`).
+- Espaçamento generoso: `space-y-8` no container raiz.
+
+## Arquivo afetado
+- `src/pages/Dashboard.tsx`

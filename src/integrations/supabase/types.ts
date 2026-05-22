@@ -81,9 +81,12 @@ export type Database = {
         Row: {
           categoria: string
           created_at: string
+          dia_vencimento: number
           id: string
           nome: string
           recorrente: boolean
+          status_mes: Json
+          tipo: string
           updated_at: string
           user_id: string
           valor: number
@@ -91,9 +94,12 @@ export type Database = {
         Insert: {
           categoria?: string
           created_at?: string
+          dia_vencimento?: number
           id?: string
           nome: string
           recorrente?: boolean
+          status_mes?: Json
+          tipo?: string
           updated_at?: string
           user_id: string
           valor?: number
@@ -101,9 +107,12 @@ export type Database = {
         Update: {
           categoria?: string
           created_at?: string
+          dia_vencimento?: number
           id?: string
           nome?: string
           recorrente?: boolean
+          status_mes?: Json
+          tipo?: string
           updated_at?: string
           user_id?: string
           valor?: number
@@ -515,6 +524,7 @@ export type Database = {
           nome: string
           nome_recebedor: string | null
           plano: string
+          saldo_inicial_ano: Json
           updated_at: string
           user_id: string
         }
@@ -545,6 +555,7 @@ export type Database = {
           nome?: string
           nome_recebedor?: string | null
           plano?: string
+          saldo_inicial_ano?: Json
           updated_at?: string
           user_id: string
         }
@@ -575,6 +586,7 @@ export type Database = {
           nome?: string
           nome_recebedor?: string | null
           plano?: string
+          saldo_inicial_ano?: Json
           updated_at?: string
           user_id?: string
         }
